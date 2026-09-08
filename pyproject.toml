@@ -26,3 +26,13 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
+# train.py ran once and produced the shipped artifact; it is committed for
+# provenance, so lint churn there would tempt a refactor that makes the code
+# stop describing how the live model was made.
+extend-exclude = ["training/"]
+
+[tool.ruff.lint]
+# The scripts put src/ on sys.path before importing from it, which is what the
+# `# noqa: E402` directives in them are for. Enabling the rule makes those
+# directives mean something instead of reading as noise.
+extend-select = ["E402"]
