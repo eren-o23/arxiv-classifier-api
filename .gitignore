@@ -21,3 +21,6 @@ data/
 # Planning docs (local only)
 BRIEF.md
 SPEC.md
+
+# Session handoff (local only)
+handoff.md
