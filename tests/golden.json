@@ -1,0 +1,189 @@
+{
+  "_note": "Hand-picked arXiv papers submitted in 2026, well past the training data, so none can be memorised. 'expected' is arXiv's own primary category, never the model's output. Clear cases assert top-1; the six 'top3' rows are genuine label ambiguity and asserting top-1 on them would give a test that fails for reasons that aren't bugs. Selection is curated for regression testing and is NOT an accuracy measure — docs/model_eval.md has the honest numbers on a proper held-out split.",
+  "_regenerate": "scripts/build_golden.py --refresh re-records 'confidence' and 'predicted'. Expect to need it after a torch upgrade; 'expected' and 'assert' stay hand-written.",
+  "model_version": "v1.0.0",
+  "model_revision": "8eb5e4732aa4e3e2903df4d2e857f3cbf4ca6518",
+  "torch": "2.14.0",
+  "papers": [
+    {
+      "arxiv_id": "2609.05416v1",
+      "title": "WorldSculpt: Generating Compositional Worlds from Grounded Videos",
+      "abstract": "We study the problem of generating a compositional 3D representation of a cluttered scene containing hundreds of objects. The goal is to represent the scene as a collection of individual object meshes placed in a shared world frame, as required by downstream applications such as gaming, AR/VR, simulation, and robotics. This task is challenging in densely cluttered scenes, where objects heavily occlude one another and each view reveals only a fraction of their geometry. Geometry-based approaches typically reconstruct the scene as a single representation and leave incomplete geometry in occluded regions, while existing compositional methods with generative priors are largely limited to relatively simple scenes. We show that complex scenes with hundreds of objects can instead be generated compositionally by adapting a strong single-object 3D generative prior to multi-view observations. We instantiate this paradigm with Pixal3D, extending it with a multi-view conditioning pathway that grounds object generation in multiple posed observations. Although the model is finetuned entirely on single objects in canonical space, it generalizes to large scenes with severe occlusion without any scene-level training, demonstrating the feasibility and scalability of this paradigm. We further introduce UE-MeshyScene, a photorealistic benchmark of densely cluttered scenes with hundreds of objects, per-object annotations, and ground-truth meshes. Across single-object, controlled multi-object, and UE-MeshyScene evaluations, our method consistently outperforms prior approaches, with larger gains as scene complexity and occlusion increase. Finally, we demonstrate broader applicability by converting generated 3DGS worlds, such as Marble and HY-World 2.0, into compositional mesh scenes.",
+      "expected": "cs.CV",
+      "assert": "top1",
+      "predicted": "cs.CV",
+      "confidence": 0.9
+    },
+    {
+      "arxiv_id": "2609.05400v1",
+      "title": "A Generalizable Feature Extractor for Alzheimer's-Related Brain MRI Tasks",
+      "abstract": "When there is not enough labeled data to properly train deep learning models, transfer learning can help. We still do not fully understand how effective it is in neuroimaging, especially for Alzheimer's disease research. It is also not clear if these transferred models can work on new datasets without being retrained for each specific task. We evaluate whether a compact, supervised pretrained model can serve as a reusable foundation model for downstream neuroimaging tasks. We freeze the 7.18 million weights of a 3D CNN previously trained for brain-age prediction, and adapt it to each task using Low-Rank Adaptation (LoRA), requiring only ~1% additional trainable parameters. We evaluate generalizability in six experiments. Adapting the model to classify cognitively normal versus Dementia on ADNI gave an AUC of 0.964 on held-out folds (Experiment #1). Applying that adapted model unchanged to OASIS-3, with no retraining, gave an AUC of 0.871 (Experiment #2). Reusing its output logit together with age and a cognitive score distinguished stable from progressing MCI with an AUC of 0.828 (Experiment #3). Adapting the same backbone to predict amyloid positivity from structural MRI gave an AUC of 0.804 (Experiment #4). Finally, the same approach estimated ICV-normalized hippocampal and white matter hypointensity volumes directly from the T1w image, with R^2 of 0.80 and 0.91 respectively, tasks normally addressed with much larger U-Net networks (Experiments #5 and #6). A compact model supervised on brain age can therefore serve as a reusable backbone, adapting to each task with ~1% additional parameters and transferring to an unseen cohort without any training. Our findings suggest that a carefully trained brain age model can serve as an effective foundation model for Alzheimer's related tasks, even under strict data constraints.",
+      "expected": "cs.CV",
+      "assert": "top1",
+      "predicted": "cs.CV",
+      "confidence": 0.8976
+    },
+    {
+      "arxiv_id": "2609.05296v1",
+      "title": "LexFlip: A Dissociation Diagnostic for Legal Meaning Preservation Metrics",
+      "abstract": "Does a simplified legal clause still say what the original said? The checks in current use cannot establish that it does: requiring an identical pair to score highest and an unrelated pair lowest moves lexical overlap and legal force together, so any monotone function of token overlap satisfies both. Our remedy is a dissociation, an item holding surface form fixed while legal force moves. We release LexFlip, 373 minimal perturbations of Quebec statutory French that reverse legal force while preserving 0.93 of the tokens, with a harness scoring metrics, regressors and prompted judges alike. The seven embedding and BERTScore metrics we test spend only 0.022 to 0.039 of their identical-to-unrelated range on such an edit, against 0.670 for bidirectional NLI, the one family the identical-pair check would disqualify. On FrJudge, against a measured human ceiling of r=0.597, a bare length feature outscores every semantic metric and has the lowest margin we measure.",
+      "expected": "cs.CL",
+      "assert": "top1",
+      "predicted": "cs.CL",
+      "confidence": 0.8805
+    },
+    {
+      "arxiv_id": "2609.05262v1",
+      "title": "Self-Supervised Lexical Representation Learning for Fast, Large-Scale Phylogenetic Inference",
+      "abstract": "Computational phylogenetics has become an essential tool in historical linguistics, yet its application at a global scale remains constrained by two factors: the labor-intensive manual annotation of cognacy judgments required for character-based methods and the substantial computational cost of inference on large datasets. This paper introduces a fully self-supervised contrastive learning framework that learns lexical representations directly from raw IPA-transcribed wordlists, without requiring cognacy annotations, alignments, or additional expert input. The model employs a dual contrastive objective: a word-level loss that organizes phonetically similar forms into a coherent space, and an auxiliary language-level loss that encourages the lexical space to reflect broader phonological properties of languages. From the resulting word representations, pairwise language distances are derived and used to infer a global phylogenetic tree of 3,399 language varieties. The inferred tree achieves a generalized quartet distance (GQD) to the Glottolog reference tree competitive with multiple baselines, while requiring only minutes of computation on a standard notebook GPU. Furthermore, the same representations capture diachronic concept stability: variance in pairwise distances across languages yields stability rankings that correlate significantly with established rankings. Ablation studies confirm that both the language-level objective and the use of phonetic feature vectors improved the inferred trees topology with regards to GQD. The framework thus provides a computationally efficient and fully automatic alternative for large-scale phylogenetic inference and offers a unified representation supporting downstream analyses at both the language and concept level.",
+      "expected": "cs.CL",
+      "assert": "top1",
+      "predicted": "cs.CL",
+      "confidence": 0.8998
+    },
+    {
+      "arxiv_id": "2609.05370v1",
+      "title": "When LLM Decompilers Recompile More and Preserve Less",
+      "abstract": "Decompilation recovers high-level source from compiled machine code and serves as a foundation for security tasks such as vulnerability detection and malware analysis. Traditional decompilers like Ghidra and Hex-Rays expose whatever they cannot resolve as visible placeholders and often emit pseudocode that will not compile or execute; LLM-based decompilers produce clean, idiomatic C and are now judged almost entirely by recompilability and re-executability: whether the output builds and passes its shipped input/output tests. We show that these metrics can reward the wrong path: a function may recompile and pass every shipped test yet diverge on other legitimate inputs, and a disclosed vulnerability may disappear from the recompiled code with no visible trace of the crash. Neither failure is caught by existing suites. To address this gap, we propose Decompile-Diverge, a behavioral comparison oracle not relying on fixed or hand-crafted tests: for each function it synthesizes a driver, grows a fuzzing corpus from the reference, and reruns the decompiled code on the same inputs to detect changes in the function's behavior. Across eight systems in nine configurations on established LLM decompilation corpora, candidates that pass every shipped test still diverge from the original on our input corpus: 4.9% overall, and as many as 13% for a single system. On 300 real GitHub library functions and 287 CVE-grounded functions, recompilability and behavioral agreement can come apart: the strongest refinement LLM lifts Ghidra's build rate from 75% to 90%, while its Matched rate falls from 74% to 62%; on disclosed vulnerabilities, up to one tenth exhibit Crash Absence in its output. Source-level analysis traces this divergence to introduced fields, types, callees, and guards that replace the visible unknowns traditional tools leave behind.",
+      "expected": "cs.CR",
+      "assert": "top1",
+      "predicted": "cs.CR",
+      "confidence": 0.9302
+    },
+    {
+      "arxiv_id": "2609.05329v1",
+      "title": "Machine Unlearning as Private Retroactive Algorithms",
+      "abstract": "Machine unlearning typically aims to emulate retraining from scratch: upon a deletion request, the unlearning algorithm should produce an outcome that would have been obtained had the deleted point never been included. Recent work has shown that this emulation requirement carries no meaningful privacy semantics against an adversary who observes a sequence of releases. Machine unlearning is thus not a privacy question per se, but rather a data maintenance question, which is precisely the subject of retroactive algorithms. These are algorithms supporting modifications of past operations, guaranteeing that all subsequent answers reflect the revised history as if it had always been in force. We put forward a definition of private retroactive algorithms, combining the retroactivity requirement with differential privacy under continual observation. We present constructions achieving both privacy and retroactivity at no asymptotic cost over privacy alone for linear statistics, clustering, and histograms, alongside impossibility results.",
+      "expected": "cs.CR",
+      "assert": "top1",
+      "predicted": "cs.CR",
+      "confidence": 0.973
+    },
+    {
+      "arxiv_id": "2609.05254v1",
+      "title": "T(r)opical Islands: Visualizing & Understanding Socio-Technical Artifacts",
+      "abstract": "Projects hosted on collaborative software development platforms, such as GitHub, include many non-code artifacts documenting the project's lifecycle, with its challenges, plans, design, and even community. These socio-technical artifacts include, for example, bug reports, feature requests, and forum posts, offering a useful prospect on the project's evolution. However, these artifacts are dispersed over multiple communication channels and written in natural language, making their analysis difficult, as they are fragmented and with considerable noise. We present a 3D visualization approach mapping topics found across a project's socio-technical artifacts onto vegetation-covered islands, where the individual artifacts are depicted as trees of various types. The topic islands rise out of the ocean as they become discussed, to sink again when they are no longer so. We built a prototype implementing the entire visualization pipeline, from data mining to interactive rendering, leveraging machine learning techniques to cluster the artifacts and extract their topics. We present, through several case studies, the insights that our approach elicits about discussions of development topics throughout a project's history. The user study we conducted (N=34) further strengthens our conclusions about its suitability for understanding socio-technical artifacts and their evolution.",
+      "expected": "cs.SE",
+      "assert": "top1",
+      "predicted": "cs.SE",
+      "confidence": 0.9828
+    },
+    {
+      "arxiv_id": "2609.05186v1",
+      "title": "An Empirical Study on Learning Paths and Gender Dynamics in Scrum Master Roles",
+      "abstract": "Context: Agile development methodology has been widely adopted by industry and the demand for experienced professionals in Agile-related roles is persistently high. Objectives: We focus on the learning path for a Scrum Master role in multicultural software companies and investigate the role in relation to team size, together with the learning process for a career path, and how companies monitor soft skills development. Method: We conducted our study in two phases, two qualitative surveys (interview studies) and performed a qualitative and quantitative data analysis of the results. Conclusions: Our results identified that the need for a Scrum Master (SM) depends on the size of the team, with our study indicating a six-member limit. There is no overall standardized process for soft skills learning or metrics to measure progress. Some companies measure soft skills based on feedback received from the client or from the team, and other companies are taking both types of feedback into consideration. Many learning initiatives, especially on soft skills for an SM role, were based on actions of the employees. The version of Record of this contribution is published in Software Engineering and Advanced Applications. SEAA 2025. Lecture Notes in Computer Science, vol 16083. Springer, Cham. and available online at: check DOI.",
+      "expected": "cs.SE",
+      "assert": "top1",
+      "predicted": "cs.SE",
+      "confidence": 0.9774
+    },
+    {
+      "arxiv_id": "2609.05057v1",
+      "title": "Online Matching in Convex Bipartite Graphs",
+      "abstract": "Online resource-allocation systems, like outpatient scheduling and spectrum allocation, often assign sequentially arriving requests to an ordered pool of scarce resources, where each request accepts a contiguous interval of feasible options. We study the resulting online matching problem on convex bipartite graphs under irrevocable decisions and adversarial arrivals. We first show that convexity alone does not improve the classic worst-case guarantee of 1-1/e, achieved by Ranking. We then consider the uniform-length model, in which every online request has exactly d consecutive offline neighbors. We propose Flip, which uses one random bit to commit ex-ante to either earliest-feasible assignment or latest-feasible assignment. Although either natural deterministic policy can waste capacity and be asymptotically only 1/2-competitive, we show that their randomized mixture is 2/3-competitive. This guarantee is tight for Flip and remains valid against a semi-adaptive adversary that observes the selected policy before choosing the arrival order. We also prove that no randomized online algorithm can achieve a competitive ratio strictly larger than 3/4 in the uniform-length model.",
+      "expected": "cs.DS",
+      "assert": "top1",
+      "predicted": "cs.DS",
+      "confidence": 0.9357
+    },
+    {
+      "arxiv_id": "2609.04825v1",
+      "title": "Beyond Distance Ordering: Resource Complexity and Universal Optimality of Exact Labeled Directed Shortest Paths",
+      "abstract": "We study exact single-source shortest paths when the output is only the materialized labeled distance vector ($\\mathrm{DIST}$), rather than a distance order. In the full deterministic comparison-addition model, the minimum worst-case number of additions on every fixed directed topology is exactly the maximum number $ρ_{\\mathrm{fwd}}$ of forward nonsource endpoint classes over rooted vertex orders; the lower bound permits adaptive control, literals, and arbitrary mixed sums. This arithmetic law aligns with the comparison optimum on DAGs, where the full resource region is an exact rectangle. Cycles destroy that alignment: a two-spoke shared-hub graph has coordinatewise optima $(4,2)$ but requires five comparisons at the two-addition budget. Its $k$-spoke extension forces $k\\log_2 k+O(k)$ comparisons at the addition optimum and has an entropy-tight deterministic tradeoff $C_{k+r}^*(H_k)=Θ(k+Λ_{k,r})$, where $Λ_{k,r}=\\log_2(k!/[r!(r+1)^{k-r}])$, with leading constant one when $Λ_{k,r}/k\\to\\infty$. Because the two coordinatewise minima need not belong to one program, these conflicts lead to the same-program benchmark $\\operatorname{OPT}_{\\mathrm{DIST}}=\\inf_A\\sup_w(C_A(w)+P_A(w))$. An exact transcript-cone game yields one uniform interpreter whose charged addition-comparison cost equals $\\operatorname{OPT}_{\\mathrm{DIST}}$ on every topology; its optimal actions are synthesizable in polynomial space but may require exponential time. Finally, an active-core reduction and the current deterministic directed-SSSP bound give an efficient uniform $O\\!\\bigl(\\operatorname{OPT}_{\\mathrm{DIST}}\\sqrt{\\log(2+\\operatorname{OPT}_{\\mathrm{DIST}})\\log\\log(4+\\operatorname{OPT}_{\\mathrm{DIST}})}\\bigr)$ charged-operation bound. Thus optimal numerical policies exist uniformly, while efficient constant-competitive navigation remains open.",
+      "expected": "cs.DS",
+      "assert": "top1",
+      "predicted": "cs.DS",
+      "confidence": 0.9783
+    },
+    {
+      "arxiv_id": "2609.05067v1",
+      "title": "Performance Evaluation of HAPS-enabled Coverage Enhancement in Hard-to-Reach Areas",
+      "abstract": "High altitude platform stations (HAPSs) are becoming a key component of future non-terrestrial networks (NTNs). HAPSs can serve a larger area than uncrewed aerial vehicles (UAVs) and offer lower propagation latency, maintenance expense, and energy costs than satellites. A major application of HAPSs is to serve the areas where terrestrial network (TN) deployment is infeasible, especially in hard-to-reach areas and post-disaster areas. For instance, in the Amazon rainforest, the Mediterranean region, and deserts, TN deployment is severely constrained by geographical and environmental conditions. Only areas close to transportation networks or coastlines can be covered, while large areas remain uncovered. Such coverage holes in hard-to-reach areas are typically overlooked in existing literature. Motivated by these realistic cases, in this paper, we use tools from stochastic geometry to mathematically model hard-to-reach areas where cellular terrestrial infrastructure only exists at their perimeter. We propose to deploy a HAPS constellation over this hard-to-reach area to enhance connectivity. For that setup, we derive the downlink (DL) and uplink (UL) coverage performance of the considered user equipment (UE) as a function of the location of the UE inside the coverage hole. Our results show how the number of HAPSs, beamwidth, and HAPS altitude affect the DL and UL coverage probabilities. Finally, we provide multiple useful guidelines for future HAPS deployment.",
+      "expected": "cs.NI",
+      "assert": "top1",
+      "predicted": "cs.NI",
+      "confidence": 0.9848
+    },
+    {
+      "arxiv_id": "2609.05361v1",
+      "title": "Development of a Humanoid Robot Prototype for Multimodal Human-Robot Interaction",
+      "abstract": "Human-robot interaction (HRI) enables intuitive and intelligent collaboration between humans and robots in real-world environments. This paper introduces a humanoid robot prototype designed as a flexible testbed for developing and integrating artificial intelligence (AI) modules in HRI tasks. The system features a 12 degree-of-freedom (DOFs) dual-arm mechanism and a 2 DOFs head with an expressive LCD screen to express facial emotions. All hardware components are controlled by a custom-designed controller board with real-time AI processing supported by an onboard Jetson module. The system incorporates three AI modules: (1) gesture recognition using MediaPipe Pose and an LSTM classifier, (2) object detection with YOLO and 3D localization, and (3) voice-command processing through speech recognition and large language model(LLM)-based semantic parsing. The platform is validated through experiments on positioning accuracy, with results showing average manipulation errors of approximately 1.83 cm. To demonstrate its versatility, experimental results show over 90% task accuracy, with gesture recognition reaching 96%, speech recognition reaching 92%. The results confirm the effectiveness of the proposed system as a reproducible and accessible humanoid platform for research and prototyping in HRI.",
+      "expected": "cs.RO",
+      "assert": "top1",
+      "predicted": "cs.RO",
+      "confidence": 0.6312
+    },
+    {
+      "arxiv_id": "2609.05337v1",
+      "title": "Variational Continuation for Double Pendulum Periodic Orbits",
+      "abstract": "We present a Hessian-based approach to numerically continue periodic orbits in dynamical systems. A loop (periodic orbit candidate) is parametrized as a Fourier series; a loss function is defined based on the deviation of the loop from the physical differential equations. Unlike previous work relying on hand-derived Jacobians, our method automates the process by leveraging automatic differentiation, a common machine learning technique. The continuation direction can be determined by the flat directions of the loss landscapes (directions with zero eigenvalues), making the search of periodic orbits efficient and guided. Our method is integrator-free, precisely initializes oscillations around unstable fixed points, and efficiently detects orbit family intersections and subharmonic bifurcations. As a demonstration, we present full continuations of periodic double pendulum oscillations from fixed points, showing bifurcations along orbit families and categorizing branches of periodic orbits. In particular, we find periodic orbits where both pendulum masses are never simultaneously at rest, which to our knowledge has been missing in the literature.",
+      "expected": "cs.LG",
+      "assert": "top1",
+      "predicted": "cs.LG",
+      "confidence": 0.8736
+    },
+    {
+      "arxiv_id": "2609.05385v1",
+      "title": "Necessary or Sufficient? Evaluating LLM Explanations With Behavioural Evidence",
+      "abstract": "LLM decision components that can operate within agent workflows often produce action-relevant recommendations or judgements together with explanations. Operators may use the named factors to monitor a system, diagnose errors, or decide when to escalate an output. Such use assumes that the explanations agree with the component's observable decision behaviour. We test two interpretations of the named factors: necessity, meaning that changing a factor would change the output, and sufficiency, meaning that retaining it while removing other changeable information would preserve the output. We evaluate these interpretations in two synthetic use cases: recommending advisors to clients and judging prompts for harmfulness or risk. Models return an output and the top three factors that most influenced it. Controlled black-box interventions estimate a necessity score for each factor by measuring how often changing it changes the output, and a sufficiency score by measuring how often retaining it preserves the output. Across eight models from the Claude, GPT, and Gemini families, the mean Spearman correlations between the cited ranking and the necessity and sufficiency scores are 0.349 and 0.354 for advisor recommendation, and 0.431 and 0.580 for prompt monitoring. Furthermore, an uncited factor scores above the lowest-scoring cited factor in 57.6% of advisor responses under necessity and 58.1% under sufficiency; the corresponding prompt-monitoring rates are 25.8% and 8.9%. The cited top three contain useful information but do not reliably identify the three factors with the strongest measured influence under necessity or sufficiency. The framework provides a black-box reliability check for explanations used in agent oversight while remaining scoped to individual LLM decisions.",
+      "expected": "cs.AI",
+      "assert": "top1",
+      "predicted": "cs.AI",
+      "confidence": 0.9439
+    },
+    {
+      "arxiv_id": "2609.05221v1",
+      "title": "A Verifier-Guided Explainable Reasoning Framework with Gold-Anchored QLoRA, Task-Aware Mixture-of-Experts, and Group-Relative RLVR",
+      "abstract": "Large language models (LLMs) show strong reasoning ability, but their explanations can remain inconsistent, weakly grounded, or difficult to verify. We propose a verifier-guided explainable reasoning framework for transparent educational question answering that combines gold-anchored QLoRA, task-aware symbolic routing, and group-relative RLVR. Qwen2.5-3B-Instruct is first adapted with field-weighted QLoRA supervision anchored to authoritative answers. A lightweight router then assigns logic problems to a FOL/Z3 verifier and physics problems to a formula- and unit aware symbolic solver. Verifier feedback is further used to support candidate evaluation, self-revision, and reward construction during RLVR. Candidate responses are evaluated along three complementary dimensions: P1 for answer correctness, P2 for evidence or unit consistency, and P3 for reasoning depth and explainability. At inference, gold-free self-consistency aggregates multiple candidate responses before an optional question-only physics verifier performs conservative system-level correction. On 438 held-out examples, RLVR increases P3 from 50.68% to 72.20%, while hybrid P1 remains approximately stable at 55.94%. Self-consistency improves model only P1 from 48.86% to 50.23%, with symbolic verification providing the remaining hybrid gain. These results indicate that RLVR primarily strengthens explicit reasoning structure, while symbolic verification complements the neural policy by improving answer reliability at the system level.",
+      "expected": "cs.CL",
+      "assert": "top3",
+      "predicted": "cs.AI",
+      "confidence": 0.6888
+    },
+    {
+      "arxiv_id": "2609.05335v1",
+      "title": "The History Is the Detector: Executing CVE Patch History, End-to-End",
+      "abstract": "Public vulnerability databases collect rich information about known software flaws, including their weakness types, affected components, and related patches. Fixing commits provide the exact code changes that removed these flaws. While these records capture why the original code was unsafe, they are documented mainly for human inspection rather than automated reuse. Consequently, the same unsafe conditions may still exist elsewhere in code without a known advisory, leaving much of this detection knowledge unused. We present BUGSTONE-E2E, a framework that transforms vulnerability history into executable detection rules and validates their findings. First, BUGSTONE-E2E mines reusable rules from verified fixing commits, capturing scan anchors, fix semantics, and CVE provenance and organizing them by CWE and language. Second, detection follows a funnel-shaped pipeline: early stages process a large pool of candidates using lightweight analysis, while later stages apply increasingly capable and expensive models to a shrinking set of targets. Specifically, BUGSTONE-E2E first enumerates call sites matching rule anchors using Tree-sitter, then removes benign sites using lightweight heuristics without LLM calls. Next, LLM-based agents inspect the remaining candidates guided by the rule. Following this inspection, the system re-triages surviving candidates and builds runtime verifications, then generates scope-checked patches validated via two-sided differential tests. Using 19,325 high-severity CVEs from 2022 to 2026, BUGSTONE-E2E identifies 2,710 fixing commits and constructs 1,033 detection rules across 56 CWE families, packaged into 172 skills. When applied across 14 programs, it produced runtime evidence for 644 findings. These results demonstrate that CVE history can be turned into an executable workflow, transforming past vulnerabilities into reproducible detection and repair.",
+      "expected": "cs.CR",
+      "assert": "top3",
+      "predicted": "cs.SE",
+      "confidence": 0.8757
+    },
+    {
+      "arxiv_id": "2609.04913v1",
+      "title": "ARIA - An Agentic Framework for Autonomous Testing of Infotainment Systems",
+      "abstract": "Automotive infotainment validation still relies on manual testing, slow, costly, and incompatible with agile releases and OTA updates. Scripted automation only partly helps: it couples test logic to implementation, yielding brittle, high-maintenance suites. Existing LLM-driven frameworks mostly target web/mobile apps, using single- or dual-agent setups that overload one or two models with perception, planning, action selection, and validation at once, prone to hallucinations and unproductive exploration loops given infotainment complexity. We present ARIA (Autonomous Real-time Infotainment Assessment), a multi-agent LLM framework that autonomously runs end-to-end tests on Android infotainment systems via visual interaction, using a closed-loop pipeline of four specialized agents per step plus a report stage. From single-sentence scenarios (path, action, expected outcome), ARIA runs the interactions and produces reports, reproducible scripts, and visual evidence per step. Evaluated on a manufacturer's physical Android infotainment system across 30 scenarios, ARIA completed 28 (93.3%) with a verdict (2 errored), 20 of which (71.4%) matched ground truth. It caught all 5 known defects, no fault passed as working; its 8 false positives stem from navigation/image limits and unsupported gestures, showing multi-agent LLMs can run infotainment tests industrially while exposing the cost of a low false-positive tolerance. A single-agent baseline confirms the multi-agent design's value: on the first pass, before stronger-model revisitation narrows the gap, it shows a far higher false-positive rate (72.0% vs. 52.6%), conflating navigational difficulty with system failure. We report first-pass/post-revisitation results, token/call/cost per scenario, and show via repeated runs that stability tracks complexity, with fault detection perfectly consistent, pointing to CI integration of visual testing.",
+      "expected": "cs.SE",
+      "assert": "top3",
+      "predicted": "cs.AI",
+      "confidence": 0.72
+    },
+    {
+      "arxiv_id": "2609.05376v1",
+      "title": "What Matters, When? Diagnosing and Improving Conditional Visual Grounding in Visuomotor Imitation Policies",
+      "abstract": "Visuomotor imitation policies can achieve high performance under in-distribution visual conditions yet fail when visually similar objects or receptacles are introduced. We study this behavior as a problem of conditional visual grounding: the visual target required for successful control changes with the manipulation phase and, in more complex tasks, with the observed task state. Using Action Chunking with Transformers (ACT), we systematically introduce distractor objects and receptacles with controlled color and shape similarity and localize failures to picking and placement. We find that distractor sensitivity is specific to both the type of visual similarity and the manipulation stage. Guided by this diagnosis, we evaluate distractor augmentation, phase-dependent attention regularization, and appearance-based visual prompting as complementary interventions for improving target selection while preserving spatial information required for control. These interventions substantially improve robustness in simulation and on a physical UR3e. We further examine the same failure pattern in a pretrained vision-language-action policy on a state-conditioned instrument-handling task, where the observed state of a medical instrument determines the correct destination. Together, the results show that visual distractors can cause incorrect object or destination selection even when the underlying manipulation skill remains intact, and that explicitly improving target selection can substantially recover performance across distinct visuomotor policy-learning regimes.",
+      "expected": "cs.RO",
+      "assert": "top3",
+      "predicted": "cs.CV",
+      "confidence": 0.7701
+    },
+    {
+      "arxiv_id": "2609.05363v1",
+      "title": "Distill Globally, Adapt Locally: Reasoning Distillation and Product-Type Test-Time Training for Scalable Trade-Up Recommendation",
+      "abstract": "Trade-up recommendation identifies higher-quality alternatives that preserve a customer's purchase intent while offering upgraded benefits. Large language models (LLMs) can reason about such distinctions, but applying them directly to hundreds of millions of product pairs is operationally impractical. We introduce a two-level framework that distills LLM reasoning into an efficient non-generative student and adapts its decision boundary to product-type-specific trade-up criteria. At Level 1, a retrieval-augmented few-shot LLM teacher generates structured relation labels and natural-language rationales. These rationales supervise a compact embedding-pair classifier through alignment and contrastive objectives; at inference, the student uses only two precomputed 768-dimensional product embeddings, with no LLM calls or text generation. On a fixed human-annotated benchmark of 8,352 pairs, a 15.5M-parameter four-class reasoning-distilled student achieves AUC 0.924 (95% CI [0.918, 0.929]), compared with 0.912 for the four-class label-only student. At Level 2, product-type test-time training (PT-TTT) uses few-shot demonstrations to optimize lightweight category-specific adapters over the frozen student. PT-TTT improves AUC from 0.924 to 0.941 and average precision from 0.920 to 0.940. On a 100K-pair proxy catalog, the distilled student on a single eight-GPU machine is approximately 5,000x faster and 10,000x lower in estimated cost than direct LLM inference.",
+      "expected": "cs.LG",
+      "assert": "top3",
+      "predicted": "cs.CL",
+      "confidence": 0.5493
+    },
+    {
+      "arxiv_id": "2609.05381v1",
+      "title": "Molecular Déjà Vu: Digit-Level Retrieval of Published Values in Frontier Language Models",
+      "abstract": "Large language models (LLMs) are increasingly evaluated on molecular property benchmarks, but accuracy cannot distinguish a model that predicts a property from one that retrieves a published number. We audit 22 frontier models on 12 regression benchmarks for verbatim retrieval and find that it is widespread but relatively benchmark-specific: on five datasets more than $50\\%$ of the LLMs show verbatim retrieval, while on the remaining datasets it appears only in isolated cells. We run our experiments at two reasoning levels and find that reasoning changes retrieval. The same experiments, on the same molecules and with the same prompt, are flagged $89\\%$ more often at the higher reasoning level than at the lowest one. Finally, we test a way to interrupt retrieval in our most contaminated cases, and find that the strongest models in some cases still recognise a combination of transformed SMILES strings and original labels. Furthermore, suppressing retrieval moves the prediction errors of the different models closer together in relative terms, while their differing use of verbatim retrieval spreads them apart. This indicates that the general predictive capability of an LLM is not determined solely by the amount of memorised values. This work provides an overview of the amount and depth of verbatim retrieval in molecular regression benchmarks using LLMs.",
+      "expected": "cs.AI",
+      "assert": "top3",
+      "predicted": "cs.CL",
+      "confidence": 0.6568
+    }
+  ]
+}
