@@ -32,9 +32,9 @@ forward pass alone; the gap to wall clock is HTTP, JSON and FastAPI.
 
 | percentile | default: wall | default: model | threads=1: wall | threads=1: model |
 |---|---|---|---|---|
-| p50 | **58.5 ms** | 57.0 ms | 74.5 ms | 72.9 ms |
-| p95 | **64.3 ms** | 62.6 ms | 80.7 ms | 79.1 ms |
-| p99 | **72.3 ms** | 70.7 ms | 93.0 ms | 90.9 ms |
+| p50 | **59.0 ms** | 57.3 ms | 74.9 ms | 73.1 ms |
+| p95 | **66.7 ms** | 64.5 ms | 80.0 ms | 78.2 ms |
+| p99 | **82.3 ms** | 79.7 ms | 89.5 ms | 87.7 ms |
 
 ## Concurrency sweep
 
@@ -56,24 +56,30 @@ default 24.8 req/s / p95 376 ms. Same conclusion both ways round.
 
 | metric | default | `NUM_THREADS=1` |
 |---|---|---|
-| batch of 32, one call | 1806 ms | 2762 ms |
-| the same 32 as singles | 1729 ms | 2020 ms |
-| batch speedup | **0.96x** | **0.73x** |
-| cold start | 3.8 s | 2.9 s |
-| peak RSS | 582 MB | 607 MB |
+| batch of 32, one call | 1846 ms | 2607 ms |
+| the same 32 as singles | 1622 ms | 2068 ms |
+| batch speedup | **0.88x** | **0.79x** |
+| cold start | 3.6 s | 3.0 s |
+| peak RSS | 849 MB | 859 MB |
 | image size | TODO — M4's row | |
 
 Cold start is process spawn → first 200 from `/predict`: interpreter start, the
 265MB artifact load, and the lifespan warmup. It is not a measure of the model
 load alone.
 
+Peak RSS is `getrusage(RUSAGE_CHILDREN).ru_maxrss` — the OS's high-water mark
+for the server process, read after it exits. An earlier revision sampled `ps`
+at the end of the run instead and reported **582 MB**; that is a *current*
+reading, not a peak, and it understated the true figure by 46%. If you are
+sizing a container from this page, 849 MB is the number.
+
 ---
 
 ## What the numbers say
 
-**p95 is 64 ms and the distribution is tight** — p99/p50 is 1.24, so there is no
-long tail to speak of at concurrency 1. **HTTP and FastAPI cost about 1.5 ms**,
-2.6% of the request; the other 97% is the forward pass. There is nothing to win
+**p95 is 67 ms and the distribution is tight** — p99/p50 is 1.4, so there is no
+long tail to speak of at concurrency 1. **HTTP and FastAPI cost about 1.7 ms**,
+2.9% of the request; the other 97% is the forward pass. There is nothing to win
 in the web layer, which is the useful thing to know before optimising it.
 
 **Throughput ceilings at ~24 req/s and it is compute, not the server.** Going
@@ -107,7 +113,7 @@ time is what makes that a config change instead of a code change.
 ### Batching does not pay on CPU, and padding is why
 
 SPEC §4 expects one forward pass over 32 texts to be several times faster than
-32 passes. Measured, it is **0.96x** — slightly slower.
+32 passes. Measured, it is **0.88x** — slightly slower.
 
 The cause is padding. `predict_many` pads the batch to its longest member, and
 for these 32 papers that is 384 tokens against a median of 323:
@@ -125,7 +131,7 @@ the efficiency only just covers the padding, and nets out at nothing.
 
 **The `NUM_THREADS=1` column is the proof.** With one thread there is no
 parallelism for a wider matrix to exploit, so time should track token-work
-exactly: 1 ÷ 1.23 = 0.81 predicted, 0.73 measured. Batching wins by using idle
+exactly: 1 ÷ 1.23 = 0.81 predicted, 0.79 measured. Batching wins by using idle
 compute, and on a CPU box a *single* 384-token request already saturates the
 cores, so there is none to use.
 
@@ -137,13 +143,14 @@ for the caller even when it is not a throughput win for the server.
 
 ### Memory
 
-**Peak RSS is 582 MB against a 265 MB artifact** — 2.2x, which is fp32 weights
-plus torch's allocator and the activations for a 32×384 batch. Comfortable on
-the 4GB VM, and it sets the floor for M4's container limit. The `NUM_THREADS=1`
-run peaks slightly higher (607 MB), which is per-thread arena bookkeeping, not
+**Peak RSS is 849 MB against a 265 MB artifact** — 3.2x, which is fp32 weights
+plus torch's allocator and the activations for a 32×384 batch. Still comfortable
+on the 4GB VM, but it is the floor for M4's container limit and it is 46% above
+what a `ps` sample at the end of the run suggested. The `NUM_THREADS=1` run
+peaks marginally higher (859 MB), which is per-thread arena bookkeeping, not
 anything meaningful.
 
-**Cold start is 3.8 s.** That is the number that matters for a rolling restart
+**Cold start is 3.6 s.** That is the number that matters for a rolling restart
 or an autoscaler, not the load time alone. Health checks must not go green
 before it finishes — which is exactly what the lifespan warmup and the 503
 branch are for.

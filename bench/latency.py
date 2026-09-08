@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import resource
 import subprocess
 import sys
 import time
@@ -43,9 +45,16 @@ def post(url: str, path: str, payload: dict, timeout: float = 60) -> tuple[float
 
 
 def pct(values: list[float], q: float) -> float:
-    """Nearest rank — no interpolation argument to have, correct at the edges."""
+    """Nearest rank: the smallest value at or above q of the distribution.
+
+    ceil(n*q) - 1, not int(n*q), which is one rank too high everywhere and
+    returns the maximum sample for p99 of 100.
+    """
     ordered = sorted(values)
-    return ordered[min(int(len(ordered) * q), len(ordered) - 1)]
+    return ordered[max(0, math.ceil(len(ordered) * q) - 1)]
+
+
+assert pct([1, 2, 3, 4], 0.5) == 2 and pct(list(range(1, 101)), 0.99) == 99
 
 
 def start(port: int, threads: int | None, body: dict) -> tuple[subprocess.Popen, float]:
@@ -82,10 +91,15 @@ def start(port: int, threads: int | None, body: dict) -> tuple[subprocess.Popen,
             time.sleep(0.05)
 
 
-def rss_mb(pid: int) -> float | None:
-    out = subprocess.run(["ps", "-o", "rss=", "-p", str(pid)],
-                         capture_output=True, text=True, check=False)
-    return int(out.stdout.strip()) / 1024 if out.stdout.strip() else None
+def child_peak_mb() -> float:
+    """High-water RSS of reaped children, from the OS.
+
+    `ps` gives a *current* sample, which is not a peak — it misses whatever the
+    batch pass allocated and released. Only meaningful after the child has been
+    waited for. macOS reports ru_maxrss in bytes, Linux in KB.
+    """
+    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return peak / 1024**2 if sys.platform == "darwin" else peak / 1024
 
 
 def main() -> None:
@@ -103,7 +117,7 @@ def main() -> None:
     batch = [{"title": p["title"], "abstract": p["abstract"]}
              for p in islice(cycle(papers), BATCH)]
 
-    proc = None
+    proc, peak = None, None
     if args.url:
         url, cold_ms = args.url.rstrip("/"), None
     else:
@@ -129,12 +143,12 @@ def main() -> None:
             singles_wall += ms
             singles_model += resp["latency_ms"]
 
-        # Read after the batch pass: padding 32 items to 384 tokens is the peak.
-        peak = rss_mb(proc.pid) if proc else None
     finally:
         if proc:
             proc.terminate()
             proc.wait(timeout=30)
+            # After the wait: ru_maxrss only counts children that have been reaped.
+            peak = child_peak_mb()
 
     # In --url mode this script did not start the server, so it cannot know
     # the thread config: say so rather than label the run with a local value.
