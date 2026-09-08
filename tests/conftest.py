@@ -25,3 +25,25 @@ def bundle() -> ModelBundle:
 @pytest.fixture(scope="session")
 def golden() -> dict:
     return json.loads((REPO / "tests" / "golden.json").read_text())
+
+
+@pytest.fixture(scope="session")
+def client(bundle):
+    """A started app sharing the session bundle.
+
+    Patching load() rather than letting the lifespan run it keeps the 265MB
+    artifact to one read for the whole suite. The `with` block is what runs the
+    lifespan — test_health_before_load deliberately does not use it.
+    """
+    from fastapi.testclient import TestClient
+
+    from serving import api
+
+    original = api.ModelBundle.load
+    api.ModelBundle.load = lambda *a, **kw: bundle
+    try:
+        with TestClient(api.app) as c:
+            yield c
+    finally:
+        api.ModelBundle.load = original
+        api.app.state.ready = False
