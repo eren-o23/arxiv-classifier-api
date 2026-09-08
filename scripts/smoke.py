@@ -46,8 +46,8 @@ def get(path: str, body: dict | None = None) -> tuple[int, dict]:
 
 
 def wait_for_health(timeout_s: float = 180) -> float:
-    """Poll until ready. Returns seconds waited — under emulation this is also
-    roughly the container's cold start, which is worth seeing."""
+    """Poll until ready. Returns seconds waited, which is NOT cold start — it
+    counts from whenever this script started, not from container start."""
     started = time.monotonic()
     while time.monotonic() - started < timeout_s:
         try:

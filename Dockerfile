@@ -22,6 +22,21 @@ COPY requirements.lock .
 RUN pip install --no-cache-dir -r requirements.lock \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
+# torch ships its C++ test suite, its headers and a copy of protoc in the wheel:
+# 200MB of a runtime image that can never execute any of it. Same argument SPEC
+# §8 makes for keeping training/ out, one layer down. `torch_shm_manager` is the
+# one real binary in bin/ and it survives. Done here, in the builder, so the
+# runtime layer never carries it in the first place.
+#
+# .pyc files stay, deliberately — they are 213MB, but the venv is root-owned and
+# the service runs as `app`, so a stripped venv could not rewrite them and would
+# recompile every module on every start. That is cold start, repeatedly, to save
+# space once.
+ENV SITE=/opt/venv/lib/python3.11/site-packages
+RUN rm -rf $SITE/torch/test $SITE/torch/include \
+           $SITE/pip $SITE/setuptools $SITE/pkg_resources && \
+    find $SITE/torch/bin -type f ! -name torch_shm_manager -delete
+
 # The artifact is not in git (265MB), so it comes from the Hub, pinned. Both
 # values are --build-args from the Makefile, which is the single place the SHA
 # lives; a copy here is how the two drift.
