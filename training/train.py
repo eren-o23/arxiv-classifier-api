@@ -33,7 +33,7 @@ from serving.preprocessing import MAX_INPUT_CHARS, MAX_TOKENS, join  # noqa: E40
 
 DATASET = "TimSchopf/arxiv_categories"
 BASE = "distilbert-base-uncased"
-HUB_REPO = "eren-o23/arxiv-classifier-v1"
+HUB_REPO_NAME = "arxiv-classifier-v1"   # namespace comes from the token's account
 OUT = REPO / "models" / "arxiv-v1"
 DOCS = REPO / "docs"
 VERSION = "v1.0.0"
@@ -147,6 +147,22 @@ def main() -> None:
         print(json.dumps(ds["train"][0], indent=2, default=str))
         return
 
+    # Prove we can write to the Hub before spending the GPU time, not after.
+    api = repo = None
+    if not args.no_push:
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+        try:
+            repo = f"{api.whoami()['name']}/{HUB_REPO_NAME}"
+            api.create_repo(repo, repo_type="model", exist_ok=True)
+        except Exception as e:
+            raise SystemExit(
+                f"Hub write check failed ({e}).\n"
+                "Set HF_TOKEN to a *write* token, or pass --no-push."
+            )
+        print(f"[train] will push to {repo}")
+
     tokenizer = AutoTokenizer.from_pretrained(BASE)
     splits = {s: prepare(s, tokenizer) for s in N}
     print({s: len(d) for s, d in splits.items()})
@@ -203,14 +219,11 @@ def main() -> None:
 
     if args.no_push:
         return
-    from huggingface_hub import HfApi
-
-    api = HfApi()
-    api.create_repo(HUB_REPO, repo_type="model", exist_ok=True)
     info = api.upload_folder(
-        folder_path=str(OUT), repo_id=HUB_REPO,
+        folder_path=str(OUT), repo_id=repo,
         commit_message=f"arxiv-category-classifier {VERSION}",
     )
+    print(f"pushed to {repo}")
     print(f"\nHub revision — pin this as the Dockerfile ARG (M4):\n  {info.oid}\n")
 
 
