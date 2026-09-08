@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from serving.model import DEFAULT_MODEL_DIR, ModelBundle
+from serving.model import ModelBundle, resolve_model_dir
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -16,8 +16,9 @@ def bundle() -> ModelBundle:
     gitignored, so a fresh clone and CI both start without it, and a green run
     that never touched the model is worse than a red one.
     """
-    if not (DEFAULT_MODEL_DIR / "model_card.json").exists():
-        pytest.exit(f"{DEFAULT_MODEL_DIR} not found — run `make model`", returncode=1)
+    d = resolve_model_dir()
+    if not (d / "model_card.json").exists():
+        pytest.exit(f"{d} not found — run `make model`", returncode=1)
     return ModelBundle.load()
 
 

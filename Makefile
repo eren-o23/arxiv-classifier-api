@@ -12,7 +12,7 @@ model:
 	snapshot_download('$(HUB_REPO)', revision='$(REVISION)', local_dir='$(MODEL_DIR)')"
 
 test:
-	uv run pytest -q
+	MODEL_DIR=$(MODEL_DIR) uv run pytest -q
 
 lint:
 	uv run ruff check .

@@ -1,9 +1,10 @@
-"""join() is the train/serve contract. These are the ways it can silently break."""
+"""join() is the train/serve contract. These are the ways it can silently break.
 
-import json
+No artifact needed — ModelBundle.load() is what checks join()'s limits against
+the card, and test_model_loads exercises that.
+"""
 
-from serving.model import DEFAULT_MODEL_DIR
-from serving.preprocessing import MAX_INPUT_CHARS, MAX_TOKENS, join
+from serving.preprocessing import MAX_INPUT_CHARS, join
 
 
 def test_separator_is_exactly_a_blank_line():
@@ -45,10 +46,3 @@ def test_empty_inputs_do_not_crash():
     # Rejecting these is the API's job at M2; join() must not be where it blows up.
     assert join("", "") == "\n\n"
 
-
-def test_card_limits_match_the_module():
-    # model_card.json is the declared source of truth for the limits, but
-    # preprocessing.py is what enforces them. They must not drift.
-    card = json.loads((DEFAULT_MODEL_DIR / "model_card.json").read_text())
-    assert card["max_input_chars"] == MAX_INPUT_CHARS
-    assert card["max_tokens"] == MAX_TOKENS

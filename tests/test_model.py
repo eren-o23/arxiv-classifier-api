@@ -1,6 +1,7 @@
 """Inference tests. Deterministic only — latency belongs in bench/ at M3."""
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,22 @@ def test_batch_matches_singles(bundle, golden):
         single = bundle.predict(paper["title"], paper["abstract"])
         assert result["label"] == single["label"]
         assert result["confidence"] == pytest.approx(single["confidence"], abs=1e-4)
+
+
+def test_golden_matches_the_shipped_artifact(bundle, golden):
+    """golden.json records which artifact its numbers came from. If that drifts
+    from what is actually loaded, the confidences are measuring one model while
+    the file claims another, and nothing else goes red."""
+    assert golden["model_version"] == bundle.version
+    revision = re.search(r"^REVISION\s*:=\s*(\S+)", (REPO / "Makefile").read_text(), re.MULTILINE)
+    assert revision and golden["model_revision"] == revision.group(1), \
+        "golden.json and the Makefile disagree about which revision is shipped"
+
+
+def test_empty_batch(bundle):
+    # M2 rejects an empty batch at the schema layer, but predict_many() should
+    # not be where it blows up with an IndexError out of torch.
+    assert bundle.predict_many([]) == []
 
 
 def test_determinism(bundle):

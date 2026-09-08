@@ -17,6 +17,7 @@ import sys
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -30,8 +31,9 @@ API = "https://export.arxiv.org/api/query?"
 
 def fetch(category: str, count: int, since: str = "202601010000") -> list[dict]:
     """Recent papers whose *primary* category is `category`."""
+    until = datetime.now(UTC).strftime("%Y%m%d%H%M")
     query = urllib.parse.urlencode({
-        "search_query": f"cat:{category} AND submittedDate:[{since} TO 202612312359]",
+        "search_query": f"cat:{category} AND submittedDate:[{since} TO {until}]",
         "start": 0,
         "max_results": count * 3,          # over-fetch, most rows are cross-lists
         "sortBy": "submittedDate",
@@ -71,6 +73,14 @@ def main() -> None:
 
     if args.refresh:
         golden = json.loads(GOLDEN.read_text())
+        # Re-recording numbers from a different artifact than the file claims is
+        # exactly the drift golden.json exists to catch. model_version and
+        # model_revision are provenance — changing them is a deliberate edit.
+        if golden["model_version"] != bundle.version:
+            raise SystemExit(
+                f"golden.json says {golden['model_version']} but the loaded artifact is "
+                f"{bundle.version}. Update model_version/model_revision by hand first."
+            )
         papers = golden["papers"]
         for paper, result in zip(papers, bundle.predict_many(
                 [(p["title"], p["abstract"]) for p in papers])):

@@ -7,6 +7,7 @@ FastAPI means you cannot test a prediction without spinning up a web app.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,16 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from .preprocessing import MAX_INPUT_CHARS, MAX_TOKENS, join
 
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "arxiv-v1"
+
+
+def resolve_model_dir(override: str | Path | None = None) -> Path:
+    """Explicit argument, then $MODEL_DIR, then the repo checkout.
+
+    The repo-relative default only holds when running from a source tree —
+    installed as a wheel, parents[2] lands inside the venv. That is the M4
+    container's situation, so it sets MODEL_DIR. M2's config.py takes this over.
+    """
+    return Path(override or os.environ.get("MODEL_DIR") or DEFAULT_MODEL_DIR)
 
 
 @dataclass(slots=True, frozen=True)
@@ -37,7 +48,7 @@ class ModelBundle:
         but M3 has to measure it both ways, and a global side effect at import
         time makes that impossible.
         """
-        d = Path(model_dir or DEFAULT_MODEL_DIR)
+        d = resolve_model_dir(model_dir)
         card_path = d / "model_card.json"
         if not card_path.exists():
             raise FileNotFoundError(f"no model_card.json in {d} — run `make model`")
@@ -76,6 +87,8 @@ class ModelBundle:
 
     def predict_many(self, papers: list[tuple[str, str]]) -> list[dict]:
         """(title, abstract) pairs → one dict each, in one forward pass."""
+        if not papers:
+            return []
         encoded = self.tokenizer(
             [join(title, abstract) for title, abstract in papers],
             truncation=True,
