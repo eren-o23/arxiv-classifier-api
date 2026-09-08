@@ -61,7 +61,7 @@ default 24.8 req/s / p95 376 ms. Same conclusion both ways round.
 | batch speedup | **0.88x** | **0.79x** |
 | cold start | 3.6 s | 3.0 s |
 | peak RSS | 849 MB | 859 MB |
-| image size | TODO — M4's row | |
+| image size | 562 MB | see below — it is not a per-config number |
 
 Cold start is process spawn → first 200 from `/predict`: interpreter start, the
 265MB artifact load, and the lifespan warmup. It is not a measure of the model
@@ -72,6 +72,74 @@ for the server process, read after it exits. An earlier revision sampled `ps`
 at the end of the run instead and reported **582 MB**; that is a *current*
 reading, not a peak, and it understated the true figure by 46%. If you are
 sizing a container from this page, 849 MB is the number.
+
+---
+
+## Image — M4
+
+| | |
+|---|---|
+| **shipped image, CPU-only torch** | **562 MB** as `docker images` reports it |
+| the same image on disk, uncompressed | 1340 MB |
+| dependency wheels, CPU-only index | **194 MB** across 40 wheels |
+| dependency wheels, default PyPI index | **2921 MB** across 58 wheels |
+| baked artifact | 257 MB |
+
+Built `--platform linux/amd64` on an arm64 laptop, because the lock is hashed for
+x86_64 and the M5 VM is the arch that matters. Under 1GB either way you read the
+first two rows, which was the M4 gate.
+
+### CPU-only torch is a 15x difference in what you download
+
+SPEC §8 predicts ~2.5GB for default torch against under 1GB for CPU-only wheels.
+Measured at the dependency layer, where the difference actually lives, it is
+**194 MB against 2921 MB** for the identical set of top-level requirements.
+
+The default index resolves 58 packages; the CPU index resolves 40. The 18 extra
+are almost all CUDA:
+
+| | MB |
+|---|---|
+| `torch` (default) | 529 |
+| `torch` (`+cpu`) | 132 |
+| `nvidia-cudnn-cu13` | 528 |
+| `nvidia-cublas` | 404 |
+| `triton` | 237 |
+| `nvidia-nccl-cu13` | 206 |
+| ...11 more `nvidia-*` | 619 |
+
+None of it can ever execute on a 2 vCPU VM with no GPU. `torch==2.14.0+cpu` is a
+different wheel, not the same wheel with a flag — 132 MB against 529 MB before a
+single CUDA dependency is counted.
+
+**The default-torch image was not built to completion.** It exhausted the disk on
+this machine partway through, which is a blunter version of the same point than
+any figure here: it is not that the CUDA image is larger, it is that it does not
+fit. The 2921 MB is measured from the resolved wheel sizes the index serves, not
+from a built image, and is labelled that way rather than quietly compared against
+the 562 MB.
+
+### 200MB of the wheel is unreachable at runtime
+
+torch ships its C++ gtest binaries (85 MB), its C++ headers (63 MB) and a copy of
+`protoc` (52 MB) inside the wheel. A serving image can never execute any of it,
+so the builder stage deletes it — the same argument SPEC §8 makes for keeping
+`training/` out, one layer further down. That is 620 → 562 MB, and 1561 → 1340 MB
+on disk, with the smoke gate re-run afterwards to prove nothing that matters went
+with it.
+
+`.pyc` files stay, and they are 213 MB. The venv is root-owned and the service
+runs as `app`, so a stripped venv could not rewrite them and every module would
+recompile on every start. That trades cold start, repeatedly, against space saved
+once.
+
+### Container timings are not comparable to the rest of this page
+
+`/predict` inside the container answered in **897 ms** against 59 ms native. That
+is Rosetta emulating x86_64 on an arm64 laptop, not a property of the image, and
+it is recorded here only so nobody reads it as a regression. **M6 measures the
+container on the VM, where the arch is native**, using the same
+`bench/latency.py --url` path M3 already verified.
 
 ---
 
