@@ -1,0 +1,13 @@
+# Default-deny. The build context is the lock file and the source, nothing else.
+# An allowlist cannot silently start shipping something the way a deny-list can
+# the moment a new directory appears — and the things that must never enter the
+# image are exactly the ones that grow: models/ (265MB, the image downloads its
+# own copy at the pinned revision), training/ and data/ (dead weight and extra
+# attack surface in a runtime image), .git/, and the local .venv/.
+*
+!requirements.lock
+!src/
+
+# ...except caches, which src/ would otherwise drag in.
+**/__pycache__
+**/*.py[cod]

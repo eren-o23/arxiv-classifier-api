@@ -1,10 +1,15 @@
-.PHONY: model test lint run bench load
+.PHONY: model test lint run bench load lock
 
 # The one place the artifact is pinned. At M4 the Dockerfile takes this as a
 # --build-arg rather than hardcoding its own copy.
 HUB_REPO  := erenrosman/arxiv-classifier-v1
 REVISION  := 8eb5e4732aa4e3e2903df4d2e857f3cbf4ca6518
 MODEL_DIR ?= models/arxiv-v1
+
+# Default torch pulls ~2.5GB of CUDA libraries this box will never use. This
+# index is the CPU-only build, and both `lock` and the Dockerfile need it — a
+# lock resolved here pins `torch==X.Y.Z+cpu`, which does not exist on PyPI.
+TORCH_CPU  := https://download.pytorch.org/whl/cpu
 
 # models/ is gitignored, so a fresh clone has no artifact. This fetches it.
 model:
@@ -28,3 +33,12 @@ bench:
 
 load:
 	MODEL_DIR=$(MODEL_DIR) bench/load.sh
+
+# requirements.lock is generated, committed, and never hand-edited. uv strips
+# --extra-index-url out of the header it writes, so this target is the only
+# record of how the file was produced.
+lock:
+	uv pip compile pyproject.toml --python-version 3.11 \
+	  --python-platform x86_64-unknown-linux-gnu \
+	  --extra-index-url $(TORCH_CPU) --index-strategy unsafe-best-match \
+	  --generate-hashes -o requirements.lock

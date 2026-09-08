@@ -3,8 +3,9 @@ name = "arxiv-classifier-api"
 version = "0.1.0"
 description = "Fine-tuned DistilBERT arXiv category classifier, served as an HTTP API"
 requires-python = ">=3.11"
-# Unpinned deliberately. requirements.lock (fully pinned, hashed) arrives at M4
-# when the container needs reproducibility — see SPEC.md §8.
+# Unpinned deliberately. These are the deps; `requirements.lock` is the exact
+# resolution of them for the container — fully pinned and hashed, for linux
+# x86_64, with CPU-only torch. Regenerate it with `make lock`, never by hand.
 dependencies = [
     "torch",
     "transformers",
