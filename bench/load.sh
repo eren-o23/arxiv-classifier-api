@@ -26,6 +26,8 @@ json.dump({"title": p["title"], "abstract": p["abstract"]}, open(sys.argv[2], "w
 
 if [ -n "${URL:-}" ]; then
   url=${URL%/}
+  # This script did not start that server, so NUM_THREADS here means nothing.
+  threads="set by the server"
 else
   url="http://127.0.0.1:$PORT"
   # >/dev/null: the app logs one JSON line per request to stdout, and 200 of
@@ -39,7 +41,7 @@ else
 fi
 
 echo
-echo "## hey sweep — NUM_THREADS=${NUM_THREADS:-default}, $N requests per level"
+echo "## hey sweep — NUM_THREADS=${threads:-${NUM_THREADS:-default}}, $N requests per level"
 echo
 echo "| concurrency | throughput | p95 |"
 echo "|---|---|---|"

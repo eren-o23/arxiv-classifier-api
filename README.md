@@ -21,14 +21,17 @@ curl -X POST https://TODO/predict \
 
 ## Numbers
 
-Measured on TODO, not estimated.
+Measured on an Apple M2 (8 cores, 8GB), not estimated — `make bench` and
+`make load`. Full run and interpretation in [docs/numbers.md](docs/numbers.md).
+The M5 VM is 2 vCPU / 4GB, so M6 re-measures against the deployed box.
 
 | | |
 |---|---|
-| p50 / p95 / p99 latency | TODO |
-| Throughput @ concurrency 8 | TODO |
-| Batch-of-32 vs 32 singles | TODO |
-| Cold start | TODO |
+| p50 / p95 / p99 latency | 58.5 / 64.3 / 72.3 ms |
+| Throughput @ concurrency 8 | 24.3 req/s (p95 375 ms) |
+| Batch-of-32 vs 32 singles | 0.96x — [batching does not pay on CPU](docs/numbers.md#batching-does-not-pay-on-cpu-and-padding-is-why) |
+| Cold start | 3.8 s (spawn → first 200 from `/predict`) |
+| Peak RSS | 582 MB |
 | Image size | TODO |
 | Top-1 / top-3 accuracy | 0.775 / 0.988 ([details](docs/model_eval.md)) |
 
@@ -38,14 +41,16 @@ In progress. Model evaluation in [docs/model_eval.md](docs/model_eval.md).
 
 ```bash
 make model   # fetch the artifact at its pinned revision (models/ is gitignored)
-make test    # 36 tests
+make test    # 39 tests
 make run     # serve on :8000
+make bench   # latency, batch, cold start, RSS — spawns its own server
+make load    # hey sweep at concurrency 1/2/4/8/16 (needs `brew install hey`)
 ```
 
 - [x] M0 — model trained, artifact + card published ([`erenrosman/arxiv-classifier-v1`](https://huggingface.co/erenrosman/arxiv-classifier-v1))
 - [x] M1 — tested package (`make test`, 18 tests, golden set of 20 real papers)
 - [x] M2 — API (four endpoints, lifespan load + warmup, validation, JSON request log)
-- [ ] M3 — benchmarks
+- [x] M3 — benchmarks ([docs/numbers.md](docs/numbers.md))
 - [ ] M4 — container
 - [ ] M5 — deployed
 - [ ] M6 — load test + CI

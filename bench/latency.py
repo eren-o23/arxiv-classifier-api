@@ -136,7 +136,9 @@ def main() -> None:
             proc.terminate()
             proc.wait(timeout=30)
 
-    threads = args.threads or "default"
+    # In --url mode this script did not start the server, so it cannot know
+    # the thread config: say so rather than label the run with a local value.
+    threads = "set by the server" if args.url else (args.threads or "default")
     print(f"\n## {args.n} warm sequential requests, NUM_THREADS={threads}, {url}\n")
     print("| percentile | wall clock | model only |")
     print("|---|---|---|")
