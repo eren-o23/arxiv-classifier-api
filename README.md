@@ -30,13 +30,13 @@ Measured on TODO, not estimated.
 | Batch-of-32 vs 32 singles | TODO |
 | Cold start | TODO |
 | Image size | TODO |
-| Top-1 / top-3 accuracy | TODO |
+| Top-1 / top-3 accuracy | 0.775 / 0.988 ([details](docs/model_eval.md)) |
 
 ## Status
 
-In progress. Build plan in [SPEC.md](SPEC.md), original framing in [BRIEF.md](BRIEF.md).
+In progress. Model evaluation in [docs/model_eval.md](docs/model_eval.md).
 
-- [ ] M0 — model trained, artifact + card published
+- [x] M0 — model trained, artifact + card published ([`erenrosman/arxiv-classifier-v1`](https://huggingface.co/erenrosman/arxiv-classifier-v1))
 - [ ] M1 — tested package
 - [ ] M2 — API
 - [ ] M3 — benchmarks
