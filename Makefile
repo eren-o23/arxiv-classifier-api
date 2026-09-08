@@ -1,4 +1,4 @@
-.PHONY: model test lint run
+.PHONY: model test lint run bench load
 
 # The one place the artifact is pinned. At M4 the Dockerfile takes this as a
 # --build-arg rather than hardcoding its own copy.
@@ -19,3 +19,9 @@ lint:
 
 run:
 	MODEL_DIR=$(MODEL_DIR) uv run uvicorn serving.api:app --reload
+
+# M3. Spawns its own server, so no `make run` in another shell first.
+# NUM_THREADS is a settings knob, so the thread comparison is two runs of this,
+# not a code change: `make bench THREADS="--threads 1"`.
+bench:
+	MODEL_DIR=$(MODEL_DIR) uv run python bench/latency.py $(THREADS)
