@@ -35,6 +35,6 @@ def get_settings() -> Settings:
         # Unset means torch's default (every core). Pinning it to 1 helps p95
         # under concurrency, but M3 has to measure both, so there is no default.
         num_threads=int(threads) if threads else None,
-        max_batch_size=int(os.environ.get("MAX_BATCH_SIZE", 32)),
+        max_batch_size=int(os.environ.get("MAX_BATCH_SIZE", "32")),
         log_level=os.environ.get("LOG_LEVEL", "INFO").upper(),
     )
