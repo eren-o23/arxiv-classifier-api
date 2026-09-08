@@ -1,4 +1,4 @@
-.PHONY: model test lint run bench load lock
+.PHONY: model test lint run bench load lock build docker-run smoke
 
 # The one place the artifact is pinned. At M4 the Dockerfile takes this as a
 # --build-arg rather than hardcoding its own copy.
@@ -42,3 +42,25 @@ lock:
 	  --python-platform x86_64-unknown-linux-gnu \
 	  --extra-index-url $(TORCH_CPU) --index-strategy unsafe-best-match \
 	  --generate-hashes -o requirements.lock
+
+# M4. This laptop is arm64 and the VM is x86_64; the lock is hashed for
+# x86_64, so the image is built for the target rather than the builder. On the
+# VM that is native and PLATFORM can be left empty.
+PLATFORM ?= --platform linux/amd64
+IMAGE    ?= arxiv-classifier
+PORT     ?= 8000
+
+build:
+	docker build $(PLATFORM) \
+	  --build-arg HUB_REPO=$(HUB_REPO) --build-arg REVISION=$(REVISION) \
+	  -t $(IMAGE):$(REVISION) -t $(IMAGE):latest .
+	@docker image inspect $(IMAGE):latest --format '{{.Size}}' | \
+	  awk '{printf "image: %.0f MB\n", $$1/1000000}'
+
+docker-run:
+	docker run --rm -p $(PORT):8000 --name $(IMAGE) $(IMAGE):latest
+
+# The M4 gate as something runnable. Needs `make docker-run` in another shell.
+# Points anywhere: `URL=https://... make smoke` is how M5 gets checked.
+smoke:
+	PORT=$(PORT) python3 scripts/smoke.py
