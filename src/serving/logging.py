@@ -35,21 +35,32 @@ async def log_requests(request: Request, call_next: Any):
     route deposits what only it knows (label, confidence, input_chars) and this
     merges it with what only the middleware knows (status, total latency).
     """
-    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
+    # Truncated: the header is client-supplied and otherwise unbounded, and it
+    # is written to every log line and echoed back.
+    request_id = (request.headers.get("x-request-id") or "")[:64] or uuid.uuid4().hex[:12]
     request.state.log = {}
     request.state.request_id = request_id
 
     started = time.perf_counter()
-    response = await call_next(request)
-    elapsed_ms = (time.perf_counter() - started) * 1000
+    try:
+        response = await call_next(request)
+        status = response.status_code
+    except BaseException:
+        # Starlette's ServerErrorMiddleware sits *outside* this one, so an
+        # unhandled exception propagates past here and turns into a 500 that
+        # this middleware never sees. Without this branch the only requests that
+        # go unlogged are the ones that failed.
+        status = 500
+        raise
+    finally:
+        logger.info(json.dumps({
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
+            "request_id": request_id,
+            "path": request.url.path,
+            "status": status,
+            "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+            **request.state.log,
+        }))
 
-    logger.info(json.dumps({
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
-        "request_id": request_id,
-        "path": request.url.path,
-        "status": response.status_code,
-        "latency_ms": round(elapsed_ms, 2),
-        **request.state.log,
-    }))
     response.headers["x-request-id"] = request_id
     return response

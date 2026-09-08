@@ -6,6 +6,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
 from .config import get_settings
 from .logging import configure, log_requests
@@ -37,7 +38,36 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# 32 items x 4000 chars is ~128KB of text, so this is ample headroom for the
+# largest legal request.
+MAX_BODY_BYTES = 1024 * 1024
+
+
+async def limit_body(request: Request, call_next):
+    """Reject oversized bodies before anything deserializes them.
+
+    The batch cap in `predict_batch` runs after Pydantic has already built the
+    whole list, so a 200k-item batch costs hundreds of MB of RSS before it earns
+    its 400. SPEC §5 caps characters before tokenizing for exactly this reason —
+    this is the same argument one level up, at the HTTP boundary.
+
+    Content-Length only; a chunked request has none and slips through. M5's
+    Caddy caps those properly, but the container serves directly at M4 and
+    should not depend on a proxy that does not exist yet.
+    """
+    length = request.headers.get("content-length")
+    if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
+        return JSONResponse(
+            {"detail": f"request body is {length} bytes, limit is {MAX_BODY_BYTES}"},
+            status_code=413,
+        )
+    return await call_next(request)
+
+
 app = FastAPI(title="arxiv-classifier-api", lifespan=lifespan)
+# Registered first, so log_requests ends up the outer of the two and a 413 still
+# produces a log line. Starlette runs the last-registered middleware outermost.
+app.middleware("http")(limit_body)
 app.middleware("http")(log_requests)
 
 

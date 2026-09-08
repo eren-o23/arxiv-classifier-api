@@ -1,8 +1,10 @@
 """Contract tests. Shapes and status codes only — latency belongs in bench/ at M3."""
 
+import json
+
 from fastapi.testclient import TestClient
 
-from serving.api import app
+from serving.api import MAX_BODY_BYTES, app
 
 PAPER = {"title": "Sparse Attention", "abstract": "We propose a sparse attention mechanism."}
 
@@ -88,3 +90,39 @@ def test_request_log_has_no_abstract_text(client, caplog):
     line = next(r.message for r in caplog.records if "/predict" in r.message)
     assert PAPER["abstract"] not in line
     assert '"label"' in line and '"input_chars"' in line
+
+
+def test_failed_requests_are_logged(client, caplog):
+    """A 500 must still produce a log line — Starlette's ServerErrorMiddleware
+    sits outside ours, so without the try/finally the only unlogged requests are
+    the ones that failed.
+
+    Its own TestClient, because the shared fixture re-raises server exceptions
+    instead of returning the 500 a real client would see. No `with`, so this
+    does not start a second lifespan — it borrows the ready state the `client`
+    fixture already established on the same module-level app.
+    """
+    @app.get("/_boom")
+    def boom():
+        raise RuntimeError("kaboom")
+
+    with caplog.at_level("INFO", logger="serving.request"):
+        r = TestClient(app, raise_server_exceptions=False).get("/_boom")
+
+    assert r.status_code == 500
+    line = json.loads(caplog.records[-1].message)
+    assert line["status"] == 500
+    assert line["path"] == "/_boom"
+
+
+def test_oversized_body_is_413(client):
+    """Rejected on Content-Length, before Pydantic builds a 200k-item list."""
+    r = client.post("/predict/batch", json={"items": [PAPER] * 20_000})
+    assert r.status_code == 413
+    assert str(MAX_BODY_BYTES) in r.json()["detail"]
+
+
+def test_request_id_is_capped(client):
+    """Client-supplied and otherwise unbounded, logged and echoed on every line."""
+    r = client.post("/predict", json=PAPER, headers={"x-request-id": "a" * 500})
+    assert len(r.headers["x-request-id"]) == 64
