@@ -53,6 +53,11 @@ def _bundle(request: Request) -> ModelBundle:
 def health(request: Request, response: Response):
     state = request.app.state
     if not getattr(state, "ready", False):
+        # Measured: a single uvicorn process does not accept connections until
+        # the lifespan finishes, so an external probe gets a refused connection
+        # here, not this 503. The branch is still the right contract — it is what
+        # a proxied or multi-worker setup returns, and what the tests assert —
+        # but do not expect to see it by curling a local `make run`.
         # Hand-rolled rather than `raise HTTPException`: the response model is
         # the same either way, and a probe reading `model_loaded` deserves the
         # real shape, not an error envelope.

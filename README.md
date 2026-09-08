@@ -38,12 +38,13 @@ In progress. Model evaluation in [docs/model_eval.md](docs/model_eval.md).
 
 ```bash
 make model   # fetch the artifact at its pinned revision (models/ is gitignored)
-make test
+make test    # 36 tests
+make run     # serve on :8000
 ```
 
 - [x] M0 — model trained, artifact + card published ([`erenrosman/arxiv-classifier-v1`](https://huggingface.co/erenrosman/arxiv-classifier-v1))
-- [x] M1 — tested package (`make test`, 17 tests, golden set of 20 real papers)
-- [ ] M2 — API
+- [x] M1 — tested package (`make test`, 18 tests, golden set of 20 real papers)
+- [x] M2 — API (four endpoints, lifespan load + warmup, validation, JSON request log)
 - [ ] M3 — benchmarks
 - [ ] M4 — container
 - [ ] M5 — deployed
