@@ -36,8 +36,13 @@ Measured on TODO, not estimated.
 
 In progress. Model evaluation in [docs/model_eval.md](docs/model_eval.md).
 
+```bash
+make model   # fetch the artifact at its pinned revision (models/ is gitignored)
+make test
+```
+
 - [x] M0 — model trained, artifact + card published ([`erenrosman/arxiv-classifier-v1`](https://huggingface.co/erenrosman/arxiv-classifier-v1))
-- [ ] M1 — tested package
+- [x] M1 — tested package (`make test`, 17 tests, golden set of 20 real papers)
 - [ ] M2 — API
 - [ ] M3 — benchmarks
 - [ ] M4 — container
