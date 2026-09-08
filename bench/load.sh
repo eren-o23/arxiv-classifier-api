@@ -39,7 +39,7 @@ else
 fi
 
 echo
-echo "## hey sweep — NUM_THREADS=${NUM_THREADS:-default (all cores)}, $N requests per level"
+echo "## hey sweep — NUM_THREADS=${NUM_THREADS:-default}, $N requests per level"
 echo
 echo "| concurrency | throughput | p95 |"
 echo "|---|---|---|"

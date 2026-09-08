@@ -136,7 +136,7 @@ def main() -> None:
             proc.terminate()
             proc.wait(timeout=30)
 
-    threads = args.threads or "default (all cores)"
+    threads = args.threads or "default"
     print(f"\n## {args.n} warm sequential requests, NUM_THREADS={threads}, {url}\n")
     print("| percentile | wall clock | model only |")
     print("|---|---|---|")
