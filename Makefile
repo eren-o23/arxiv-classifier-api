@@ -1,4 +1,4 @@
-.PHONY: model test lint
+.PHONY: model test lint run
 
 # The one place the artifact is pinned. At M4 the Dockerfile takes this as a
 # --build-arg rather than hardcoding its own copy.
@@ -16,3 +16,6 @@ test:
 
 lint:
 	uv run ruff check .
+
+run:
+	MODEL_DIR=$(MODEL_DIR) uv run uvicorn serving.api:app --reload

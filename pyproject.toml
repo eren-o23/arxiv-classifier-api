@@ -9,10 +9,14 @@ dependencies = [
     "torch",
     "transformers",
     "huggingface-hub",
+    "fastapi",
+    # Plain uvicorn, not uvicorn[standard]: the extras pull uvloop/httptools
+    # which M4 would carry into the image for no measured gain.
+    "uvicorn",
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "httpx"]  # httpx is what starlette's TestClient runs on
 
 [build-system]
 requires = ["hatchling"]
