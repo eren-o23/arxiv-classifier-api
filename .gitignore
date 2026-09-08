@@ -17,3 +17,7 @@ data/
 
 # macOS
 .DS_Store
+
+# Planning docs (local only)
+BRIEF.md
+SPEC.md
