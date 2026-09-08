@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from .preprocessing import MAX_INPUT_CHARS
+from .preprocessing import MAX_INPUT_CHARS, joined_length
 
 
 class PredictRequest(BaseModel):
@@ -81,10 +81,14 @@ def check_paper(title: str, abstract: str, index: int | None = None) -> None:
     for name, value in (("title", title), ("abstract", abstract)):
         if not value.strip():
             raise HTTPException(400, f"{name} is empty or whitespace-only{where}")
-    total = len(title.strip()) + len(abstract.strip())
+    # joined_length(), not len(title) + len(abstract): join() puts a blank line
+    # between them, so summing the two fields alone lets 2 characters more than
+    # the limit through to be silently truncated — the exact thing this check is
+    # here to stop.
+    total = joined_length(title, abstract)
     if total > MAX_INPUT_CHARS:
         raise HTTPException(
             400,
-            f"title + abstract is {total} characters{where}, "
-            f"limit is {MAX_INPUT_CHARS}",
+            f"title + abstract is {total} characters{where} "
+            f"(including the blank line between them), limit is {MAX_INPUT_CHARS}",
         )

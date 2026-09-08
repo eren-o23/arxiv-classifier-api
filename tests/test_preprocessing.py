@@ -4,7 +4,7 @@ No artifact needed — ModelBundle.load() is what checks join()'s limits against
 the card, and test_model_loads exercises that.
 """
 
-from serving.preprocessing import MAX_INPUT_CHARS, join
+from serving.preprocessing import MAX_INPUT_CHARS, join, joined_length
 
 
 def test_separator_is_exactly_a_blank_line():
@@ -46,3 +46,19 @@ def test_empty_inputs_do_not_crash():
     # Rejecting these is the API's job at M2; join() must not be where it blows up.
     assert join("", "") == "\n\n"
 
+
+def test_joined_length_agrees_with_join_below_the_cap():
+    """The API rejects on joined_length(); the model consumes join(). If the two
+    ever disagree about the same input, oversized text gets quietly truncated
+    instead of refused."""
+    for title, abstract in [("t", "x" * (MAX_INPUT_CHARS - 3)),
+                            ("Title", "Abstract"),
+                            ("  padded  ", "\n spaced \t")]:
+        assert joined_length(title, abstract) == len(join(title, abstract))
+
+
+def test_joined_length_sees_past_the_truncation():
+    # Above the cap is the one place they must differ: len(join(...)) is pinned
+    # at the limit, so only joined_length() can tell you the input was too big.
+    assert len(join("t", "x" * 9999)) == MAX_INPUT_CHARS
+    assert joined_length("t", "x" * 9999) == 10002

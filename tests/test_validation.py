@@ -32,10 +32,22 @@ def test_over_the_char_limit_is_400_with_the_limit_in_the_message(client):
 
 
 def test_exactly_at_the_char_limit_is_accepted(client):
-    # The limit is a cap, not a ceiling to trip on. One character either side of
-    # it is where an off-by-one in check_paper() would hide.
-    abstract = "x" * (MAX_INPUT_CHARS - 1)
-    assert client.post("/predict", json={"title": "t", "abstract": abstract}).status_code == 200
+    # A payload join() produces exactly MAX_INPUT_CHARS from: 1 title char, the
+    # 2-char blank line, and the rest abstract. Anything that reaches the model
+    # untruncated must be served.
+    abstract = "x" * (MAX_INPUT_CHARS - 3)
+    r = client.post("/predict", json={"title": "t", "abstract": abstract})
+    assert r.status_code == 200, r.json()
+
+
+def test_one_char_over_the_limit_is_rejected(client):
+    # The other side of that boundary. Summing the two fields without the
+    # separator passes this input and then lets join() truncate it — silently
+    # doing the thing the 400 exists to prevent.
+    abstract = "x" * (MAX_INPUT_CHARS - 2)
+    r = client.post("/predict", json={"title": "t", "abstract": abstract})
+    assert r.status_code == 400
+    assert str(MAX_INPUT_CHARS + 1) in r.json()["detail"], "report the real joined length"
 
 
 def test_batch_over_the_cap_is_400(client):
