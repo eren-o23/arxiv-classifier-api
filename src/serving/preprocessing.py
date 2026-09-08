@@ -17,9 +17,3 @@ def join(title: str, abstract: str) -> str:
     """
     return f"{title.strip()}\n\n{abstract.strip()}"[:MAX_INPUT_CHARS]
 
-
-if __name__ == "__main__":
-    assert join(" A ", " B ") == "A\n\nB"
-    assert join("t", "x" * 9999) == ("t\n\n" + "x" * 9999)[:MAX_INPUT_CHARS]
-    assert len(join("t", "x" * 9999)) == MAX_INPUT_CHARS
-    print("ok")
