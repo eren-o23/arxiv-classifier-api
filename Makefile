@@ -25,3 +25,6 @@ run:
 # not a code change: `make bench THREADS="--threads 1"`.
 bench:
 	MODEL_DIR=$(MODEL_DIR) uv run python bench/latency.py $(THREADS)
+
+load:
+	MODEL_DIR=$(MODEL_DIR) bench/load.sh
