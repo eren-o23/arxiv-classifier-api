@@ -86,8 +86,12 @@ sizing a container from this page, 849 MB is the number.
 | baked artifact | 257 MB |
 
 Built `--platform linux/amd64` on an arm64 laptop, because the lock is hashed for
-x86_64 and the M5 VM is the arch that matters. Under 1GB either way you read the
-first two rows, which was the M4 gate.
+x86_64 and the M5 VM is the arch that matters.
+
+**The M4 gate is met on the first row and not the second.** 562 MB is what
+`docker images` prints and what the "under 1GB" figures people quote for CPU-only
+torch refer to, so it is the like-for-like comparison; 1340 MB is what the image
+actually occupies once unpacked. Size the M5 VM's disk from 1340 MB, not 562.
 
 ### CPU-only torch is a 15x difference in what you download
 

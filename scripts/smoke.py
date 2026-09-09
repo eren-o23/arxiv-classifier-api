@@ -20,7 +20,9 @@ import time
 import urllib.error
 import urllib.request
 
-URL = os.environ.get("URL") or f"http://localhost:{os.environ.get('PORT', '8000')}"
+# rstrip: URL=https://host/ would otherwise build "//health", which is a
+# different path, 404s everything, and reports it as "never became healthy".
+URL = (os.environ.get("URL") or f"http://localhost:{os.environ.get('PORT', '8000')}").rstrip("/")
 GOLDEN = json.loads((pathlib.Path(__file__).resolve().parents[1] / "tests/golden.json").read_text())
 
 failures: list[str] = []
@@ -33,6 +35,17 @@ def check(name: str, got, want) -> None:
         failures.append(name)
 
 
+def _body(r) -> dict:
+    """Not everything that answers is this service. Behind M5's Caddy a 502 is
+    an HTML page, and letting json raise here would crash the poll loop instead
+    of retrying — the failure mode the remote path exists for."""
+    raw = r.read()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {"_not_json": raw[:200].decode(errors="replace")}
+
+
 def get(path: str, body: dict | None = None) -> tuple[int, dict]:
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
@@ -40,9 +53,9 @@ def get(path: str, body: dict | None = None) -> tuple[int, dict]:
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
-            return r.status, json.load(r)
+            return r.status, _body(r)
     except urllib.error.HTTPError as e:
-        return e.code, json.load(e)
+        return e.code, _body(e)
 
 
 def wait_for_health(timeout_s: float = 180) -> float:

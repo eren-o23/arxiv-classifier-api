@@ -76,7 +76,14 @@ EXPOSE 8000
 # "still loading" reads as unhealthy, which is the contract. Cold start is 3.6s
 # on a laptop; the start-period is generous because the 2 vCPU VM is slower and
 # a container killed mid-load looks like a crash loop.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=3 \
+#
+# timeout is 10s, not 3s. /health is a sync route, so it gets one of anyio's 40
+# threadpool slots immediately — but on a saturated box that thread still has to
+# compete for CPU with in-flight forward passes, and M3 measured p95 at 805ms at
+# concurrency 16 on *eight* cores. Two vCPU under load can plausibly exceed 3s,
+# and a probe that fails at peak traffic is a false alarm about the one moment
+# you most need the signal to be true.
+HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 CMD ["uvicorn", "serving.api:app", "--host", "0.0.0.0", "--port", "8000"]

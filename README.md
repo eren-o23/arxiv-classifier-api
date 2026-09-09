@@ -32,7 +32,7 @@ The M5 VM is 2 vCPU / 4GB, so M6 re-measures against the deployed box.
 | Batch-of-32 vs 32 singles | 0.88x — [batching does not pay on CPU](docs/numbers.md#batching-does-not-pay-on-cpu-and-padding-is-why) |
 | Cold start | 3.6 s (spawn → first 200 from `/predict`) |
 | Peak RSS | 849 MB |
-| Image size | 562 MB — [15x smaller than default torch](docs/numbers.md#cpu-only-torch-is-a-15x-difference-in-what-you-download) |
+| Image size | 562 MB compressed, 1340 MB on disk ([CPU-only torch pulls 15x fewer wheel bytes](docs/numbers.md#cpu-only-torch-is-a-15x-difference-in-what-you-download)) |
 | Top-1 / top-3 accuracy | 0.775 / 0.988 ([details](docs/model_eval.md)) |
 
 ## Status
