@@ -70,10 +70,17 @@ smoke:
 # `ssh <host> 'cd arxiv-classifier-api && make deploy'`, so there is no second
 # remote-wrapper target to keep in step with this one.
 #
-# HUB_REPO and REVISION are exported rather than written into
-# docker-compose.yml: this file stays the only place the SHA lives.
-# DOMAIN and RATE_LIMIT_EVENTS come from .env, which compose reads itself.
+# DOMAIN and RATE_LIMIT_EVENTS are hand-written in .env on the VM.
 deploy:
 	git pull
-	HUB_REPO=$(HUB_REPO) REVISION=$(REVISION) docker compose up -d --build
+# compose interpolates docker-compose.yml on EVERY command, not just build, so
+# passing these inline to `up` leaves `docker compose ps|logs|down|restart`
+# failing on the ${VAR:?} guards — including the `ps` below, which is how this
+# was found. They go in .env instead, where compose picks them up for all of
+# them. Regenerated from the two variables above on every deploy, so this file
+# stays the single place the SHA lives and .env is never hand-edited for them.
+	@grep -v '^\(HUB_REPO\|REVISION\)=' .env > .env.tmp 2>/dev/null || true
+	@printf 'HUB_REPO=%s\nREVISION=%s\n' '$(HUB_REPO)' '$(REVISION)' >> .env.tmp
+	@mv .env.tmp .env
+	docker compose up -d --build
 	docker compose ps
