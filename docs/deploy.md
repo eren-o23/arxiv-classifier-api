@@ -73,9 +73,16 @@ printf 'DOMAIN=%s\n' '<name>.duckdns.org' > .env
 `.env` is gitignored, so the hostname is not committed and `Caddyfile` is
 identical on every box. `RATE_LIMIT_EVENTS` may also go here; it defaults to 30.
 
-Do **not** run `make model` on the VM. The Dockerfile downloads the artifact
-from the Hub at the pinned revision during the build; a copy in `models/` would
-be 265 MB of unused disk.
+Do **not** run `make model` on the VM for a plain deploy. The Dockerfile
+downloads the artifact from the Hub at the pinned revision during the build, so a
+copy in `models/` would be 265 MB of unused disk.
+
+The one exception is `scripts/eval_quant.py`, which scores the model outside the
+container and does need a local copy — see
+[numbers.md](numbers.md#int8-quantization--measured-not-shipped). It also needs a
+python env the VM does not otherwise have (`uv` plus torch, transformers and
+datasets from the CPU index). Both are fine to leave in place; neither is on the
+serving path.
 
 ### 5. Deploy
 
