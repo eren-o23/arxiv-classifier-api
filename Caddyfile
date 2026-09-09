@@ -44,6 +44,13 @@
 		}
 	}
 
+	# There is no GET / route — SPEC §13 rules out a frontend, and curl is the
+	# demo. But the bare domain is the link that gets shared, and a 404 there
+	# reads as "the service is down" rather than "that path has no handler".
+	# FastAPI already serves an interactive Swagger UI at /docs for free, so
+	# point at that rather than writing a landing page.
+	redir / /docs
+
 	# By service name over the compose network. The api container publishes
 	# nothing to the host, so this is the only route to it.
 	reverse_proxy api:8000
