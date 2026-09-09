@@ -27,12 +27,18 @@
 	# endpoint touches the model. The container's own HEALTHCHECK hits
 	# localhost:8000 inside the api container and never traverses Caddy at all.
 	#
-	# 30/min is a starting number, not a derived one: the laptop sustains ~24
-	# req/s at concurrency 8 and 2 vCPU will do a fraction of that, so 0.5 rps
-	# per IP is far more than the README's curl needs and low enough that one
-	# client cannot monopolise both cores. M6 revises it once the box's real
-	# ceiling is measured — and M6's own load sweep has to raise
-	# RATE_LIMIT_EVENTS first, or it measures this limiter instead of the service.
+	# 30/min stays, and M6 makes it a derived number rather than a guess. This box
+	# tops out at **2.6 req/s** — measured, docs/numbers.md — so 30/min is 0.5 rps,
+	# or 19% of total capacity to any one IP. Five clients at the limit would
+	# saturate it, which is the right shape for a portfolio service: generous to
+	# the README's curl, and no single caller can take the box.
+	#
+	# The laptop figure that stood here before (~24 req/s) was 9x too high, so the
+	# old "2 vCPU will do a fraction of that" was directionally right and useless
+	# for actually picking a number.
+	#
+	# Re-measuring means raising RATE_LIMIT_EVENTS first, or the sweep reports
+	# this limiter instead of the service — see docs/deploy.md.
 	rate_limit {
 		zone predict {
 			match {

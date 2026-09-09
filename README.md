@@ -1,5 +1,7 @@
 # arxiv-classifier-api
 
+[![ci](https://github.com/eren-o23/arxiv-classifier-api/actions/workflows/ci.yml/badge.svg)](https://github.com/eren-o23/arxiv-classifier-api/actions/workflows/ci.yml)
+
 Fine-tuned DistilBERT classifying arXiv papers by subject, served as a FastAPI service — containerised, load-tested, and deployed.
 
 ```bash
@@ -13,9 +15,10 @@ curl -X POST https://arxiv-classifier.duckdns.org/predict \
 {
   "label": "cs.CL",
   "confidence": 0.918,
+  "scores": {"cs.CL": 0.918, "cs.AI": 0.070, "cs.LG": 0.006, "...": "all 10 labels"},
   "top3": ["cs.CL", "cs.AI", "cs.LG"],
   "model_version": "v1.0.0",
-  "latency_ms": 268.26
+  "latency_ms": 115.61
 }
 ```
 
@@ -25,23 +28,35 @@ Live, with a real certificate. Rate limited to 30 requests/minute per IP on
 
 ## Numbers
 
-Measured on an Apple M2 (8 cores, 8GB), not estimated — `make bench` and
-`make load`. Full run and interpretation in [docs/numbers.md](docs/numbers.md).
-The M5 VM is 2 vCPU / 4GB, so M6 re-measures against the deployed box.
+Measured on **the box actually serving this URL** — a Hetzner CX23, 2 vCPU /
+3.7GB — not estimated and not a laptop. Same two scripts as always,
+`bench/latency.py --url` and `bench/load.sh`, run on the VM. Full run and
+interpretation in [docs/numbers.md](docs/numbers.md), which keeps the laptop's
+figures alongside for comparison.
 
 | | |
 |---|---|
-| p50 / p95 / p99 latency | 59.0 / 66.7 / 82.3 ms |
-| Throughput @ concurrency 8 | 24.3 req/s (p95 375 ms) |
-| Batch-of-32 vs 32 singles | 0.88x — [batching does not pay on CPU](docs/numbers.md#batching-does-not-pay-on-cpu-and-padding-is-why) |
-| Cold start | 3.6 s (spawn → first 200 from `/predict`) |
-| Peak RSS | 849 MB |
+| p50 / p95 / p99 latency | 445 / 579 / 665 ms |
+| Throughput ceiling | 2.6 req/s — [the knee is at concurrency 2, which is the core count](docs/numbers.md#laptop-vs-vm) |
+| Batch-of-32 vs 32 singles | 0.83x — [batching does not pay on CPU](docs/numbers.md#batching-does-not-pay-on-cpu-and-padding-is-why) |
+| `NUM_THREADS=1` vs default | 55% worse at p50 — [the spec predicted the opposite, on both boxes](docs/numbers.md#pinning-threads-to-1-does-not-help-here-and-the-spec-said-it-would) |
+| Cold start | 8.9 s (container start → first 200 from `/predict`) |
+| Peak memory | 762 MB (cgroup peak, against 3.7GB of RAM) |
 | Image size | 562 MB compressed, 1.98 GB in Docker's store ([CPU-only torch pulls 15x fewer wheel bytes](docs/numbers.md#cpu-only-torch-is-a-15x-difference-in-what-you-download)) |
 | Top-1 / top-3 accuracy | 0.775 / 0.988 ([details](docs/model_eval.md)) |
 
+**The latency row is a full-length input** — 1,858 chars, 384 tokens, the
+tokenizer's ceiling. The curl above is a short abstract and comes back in 116 ms,
+because on CPU the forward pass scales with token count and nothing else here
+matters much: Caddy, TLS and the rate limiter together cost
+[about 3 ms](docs/numbers.md#caddy-and-tls-cost-nothing-measurable).
+
 ## Status
 
-In progress. Model evaluation in [docs/model_eval.md](docs/model_eval.md).
+**Complete — M0 through M6.** Model evaluation in
+[docs/model_eval.md](docs/model_eval.md); measured numbers in
+[docs/numbers.md](docs/numbers.md); deploy runbook in
+[docs/deploy.md](docs/deploy.md).
 
 ```bash
 make model   # fetch the artifact at its pinned revision (models/ is gitignored)
@@ -60,4 +75,4 @@ make deploy  # on the VM: git pull + compose up (see docs/deploy.md)
 - [x] M3 — benchmarks ([docs/numbers.md](docs/numbers.md))
 - [x] M4 — container (multi-stage, CPU-only torch, non-root, healthcheck — 562 MB)
 - [x] M5 — deployed ([arxiv-classifier.duckdns.org](https://arxiv-classifier.duckdns.org/health) — compose + Caddy, TLS, rate limited)
-- [ ] M6 — load test + CI
+- [x] M6 — load tested on the deployed box, CI running lint, tests, image build and container smoke
