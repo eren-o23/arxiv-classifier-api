@@ -177,6 +177,120 @@ knowing before someone proposes terminating TLS elsewhere to save a hop.
 
 ---
 
+# int8 quantization — measured, not shipped
+
+`QUANTIZE=1` runs every `nn.Linear` through `torch.ao.quantization.quantize_dynamic`
+at load. It is an env var for the same reason `NUM_THREADS` is one: the question is a
+measurement, so the comparison should be a restart rather than a rebuild. **It is off
+by default and the live service runs fp32.**
+
+**This could not be measured on the laptop.** torch reports the engines it was built
+with separately from the one it selected, and the arm64 macOS wheel selects `none` —
+`quantize_dynamic` then dies inside `linear_prepack` with `NoQEngine`. The linux
+x86_64 container reports `qnnpack, onednn, x86, fbgemm` with `x86` active. Everything
+below is from the VM.
+
+The VM's CPU is a **Xeon Skylake with AVX-512 but no VNNI** (`avx512_vnni: no`,
+`amx_int8: no`). The 2–3x usually quoted for int8 transformer inference assumes VNNI
+on Cascade Lake or newer, so a smaller win was expected here before measuring.
+
+## Latency — it works, and by roughly the predicted amount
+
+300 warm sequential requests, both configurations in the same run, same box, same
+input.
+
+| percentile | fp32 | int8 | speedup |
+|---|---|---|---|
+| p50 | 485.2 ms | **318.7 ms** | 1.52x |
+| p95 | 627.9 ms | **368.5 ms** | 1.70x |
+| p99 | 768.9 ms | **476.9 ms** | 1.61x |
+
+**1.5–1.7x, not the 2–3x the literature quotes** — which is what the missing VNNI
+predicted. The fp32 column here is 9% slower than [the headline run](#single-request--vm)
+at n=500; that is run-to-run variance on a shared vCPU, and it is why both
+configurations were measured in the same run rather than against a stored number.
+
+## Accuracy — no measurable cost
+
+The full held-out split `train.py` evaluated, reproduced exactly (2,782 rows, the
+count is asserted), scored through `ModelBundle` so what is measured is the served
+path. `scripts/eval_quant.py`.
+
+| metric | fp32 | int8 | delta | |
+|---|---|---|---|---|
+| top-1 accuracy | 0.7750 | 0.7764 | +0.0014 | 0.18 SE — noise |
+| top-3 accuracy | 0.9881 | 0.9845 | −0.0036 | 1.74 SE — suggestive, not significant |
+| macro F1 | 0.7237 | 0.7262 | +0.0025 | |
+| label agreement | | | 2652/2782 (95.33%) | |
+
+**The fp32 column reproduces [docs/model_eval.md](model_eval.md) to four decimals**
+(0.7750 / 0.9881 / 0.7237). That is not a quantization result — it is the check that
+the split, the preprocessing and the serving path all still agree with what training
+measured, and it is the reason the int8 column can be trusted at all.
+
+Quantization is not a no-op: **130 of 2,782 papers change label.** The changes simply
+wash out, netting four extra correct. macro-F1 moving *up* rules out a class-specific
+collapse hiding inside a flat average.
+
+## The cost is calibration, and the accuracy metrics hide it completely
+
+Every golden paper, fp32-recorded confidence against int8:
+
+| | |
+|---|---|
+| labels changed | **0 of 20** |
+| confidences outside the ±0.01 band | **18 of 20** |
+| largest move | 0.936 → 0.676 (cs.DS), and 0.720 → 0.534 |
+
+The shift is systematic and almost entirely downward: int8 flattens the softmax.
+Ranking survives — the label is right, the ordering is right — but the number
+attached to it moves, sometimes by a quarter.
+
+That matters here more than it would elsewhere, because this service returns all ten
+scores and the README sells the distribution as actionable: a 0.549 with a live second
+place is supposed to mean the input is ambiguous. If confidences move by 0.26, that
+claim needs re-earning.
+
+**But "changed" is not "worse", and this has not been measured.** Neural classifiers
+are typically overconfident, so a downward shift could be *better* calibrated rather
+than worse. Expected calibration error on the val split would settle it in an hour and
+has not been run. Stating the direction as a defect would be exactly the kind of
+unmeasured claim the rest of this page avoids.
+
+## Two costs that are not calibration
+
+- **Cold start gets worse: 8.9 s → 11.1 s.** Quantization happens at load, so the
+  conversion is paid on every container start.
+- **Peak memory rises: 762 MB → 999 MB** (cgroup), because the fp32 weights must exist
+  in order to be quantized. **`inplace=True` was tried and does not help** — 929 MB of
+  process RSS either way, so the deepcopy was not the cause and the code keeps the
+  default. Steady state is 590 MB against fp32's 364 MB.
+
+## Why it has not shipped
+
+The speedup is real and accuracy-neutral, so the case for it is strong. Three things
+stand in the way, and none is a tuning problem:
+
+1. **It breaks the golden-set contract.** `test_golden_labels` asserts confidence
+   within ±0.01 of a recorded value, which is what catches a silent artifact or
+   preprocessing swap. 18 of 20 papers break that band under int8. Regenerating
+   `golden.json` for the quantized model would fix the test and destroy what it is
+   for — the file would then validate int8 and no longer check the fp32 artifact it
+   was built from.
+2. **The confidence question is open**, and the service's own README makes confidence
+   a feature. Measure ECE first.
+3. **torch is deprecating this API.** `quantize_per_tensor` and the eager-mode
+   quantization path warn on every load and are slated for removal
+   ([pytorch#184982](https://github.com/pytorch/pytorch/issues/184982)). Building on it
+   now buys a migration later — and ONNX Runtime, which was the other candidate,
+   would provide int8 *and* drop torch from the runtime image.
+
+**1.5x does not unlock a new capability here** — 2.6 req/s becomes roughly 4 — so
+there is no pressure to accept those three in exchange for it. The flag stays, the
+measurement is written down, and the decision is a calibration run away.
+
+---
+
 ## Image — M4
 
 | | |

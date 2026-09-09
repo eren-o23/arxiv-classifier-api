@@ -127,7 +127,7 @@ def main() -> None:
     if flips:
         print("\nWhere the two disagree (fp32 -> int8):")
         for (a, b), n in flips.most_common(8):
-            print(f"  {a:8} -> {b:-8} {n}")
+            print(f"  {a:8} -> {b:8} {n}")
 
 
 if __name__ == "__main__":

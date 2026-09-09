@@ -283,9 +283,11 @@ server — which is a different claim from the one the spec made, and the honest
 
 ## Trade-offs and known ceilings
 
-- **No quantization, no ONNX Runtime.** The single biggest available speedup, deliberately not
-  taken — the serving work was the point and the model was a fixed input. It is the first thing to
-  do if this ever needs to be fast.
+- **int8 quantization is measured but not shipped.** `QUANTIZE=1` is 1.5–1.7x on the VM at no
+  measurable accuracy cost (top-1 +0.0014 over the full 2,782-paper split), but it moves 18 of 20
+  golden confidences outside their ±0.01 band, and this service sells its score distribution as
+  actionable. [The full result and the three reasons it is still off](docs/numbers.md#int8-quantization--measured-not-shipped).
+  ONNX Runtime is the other candidate and would also drop torch from the image.
 - **One uvicorn worker on one box.** 2.6 req/s is the ceiling and there is no horizontal story.
   The load test says the knee is at concurrency 2, so a balancer in front should cap in-flight
   requests there rather than let a queue build that only adds latency.
