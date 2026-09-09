@@ -112,6 +112,89 @@ docker compose down && docker compose up -d
 docker compose logs caddy | grep -i 'certificate\|obtain'
 ```
 
+## Benchmarking the deployed box (M6)
+
+The same two scripts M3 ran on the laptop, pointed at this VM. They are stdlib
+only in `--url` mode and import nothing from `src/`, so the VM needs no venv and
+no torch — plain `python3` is enough.
+
+### `hey` is not installable the documented way
+
+`bench/load.sh` needs it, it is not in Ubuntu's repos, and **the S3 links in
+rakyll/hey's README are dead** (`AccessDenied`) while the GitHub releases carry
+no binary assets at all. Build it in a throwaway Go container instead — Docker is
+already here, so no toolchain is left behind on the box:
+
+```bash
+docker run --rm -v $HOME/.local/bin:/out golang:1-alpine \
+  sh -c "go install github.com/rakyll/hey@latest && cp /go/bin/hey /out/hey"
+docker rmi golang:1-alpine
+export PATH=$HOME/.local/bin:$PATH      # the `deploy` user has no sudo
+```
+
+### Measure the service, not the internet
+
+Two paths, and they answer different questions:
+
+```bash
+# The api container's address on the compose bridge. Plain HTTP, no Caddy, no
+# TLS — like-for-like with the laptop's loopback numbers.
+API=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+  $(docker compose ps -q api))
+
+python3 bench/latency.py --url http://$API:8000 -n 500
+URL=http://$API:8000 bench/load.sh
+
+# What a user actually gets, Caddy and TLS included.
+python3 bench/latency.py --url https://<name>.duckdns.org -n 200
+```
+
+The `expose`-not-`ports` invariant is untouched by this: the bridge network is
+reachable from the VM's own host namespace, never from the internet.
+
+**`bench/latency.py` opens a fresh connection per request** (stdlib `urllib`, no
+keep-alive), so the through-Caddy run pays a TCP + TLS handshake the laptop
+numbers never did. Its `model only` column is the one that compares. `hey` keeps
+connections alive, so the sweeps are unaffected.
+
+### Lift the rate limit first, and put it back
+
+30/min would trip within seconds of a concurrency-16 sweep, and the result would
+be a graph of Caddy's rejection rate rather than the service's throughput:
+
+```bash
+printf 'RATE_LIMIT_EVENTS=100000\n' >> .env
+docker compose up -d          # not `make deploy` — no git pull, no xcaddy rebuild
+# ... measure ...
+grep -v '^RATE_LIMIT_EVENTS=' .env > .env.tmp && mv .env.tmp .env
+docker compose up -d
+```
+
+Only the through-Caddy runs need this; the `$API` path never touches the
+limiter. `docs/numbers.md` says which figures were taken with it lifted.
+
+### Cold start and peak memory
+
+`bench/latency.py --url` prints `n/a` for both, by design — it did not spawn the
+server, so it cannot time its start or read its RSS. Measure them directly:
+
+```bash
+docker compose stop api
+s=$(date +%s.%N); docker compose start api
+until curl -sf -m 5 -X POST http://$API:8000/predict \
+  -H 'content-type: application/json' -d '{"title":"x","abstract":"y"}' \
+  >/dev/null 2>&1; do sleep 0.1; done
+echo "cold start $(echo "$(date +%s.%N) - $s" | bc)s"
+
+docker compose exec api cat /sys/fs/cgroup/memory.peak
+```
+
+`memory.peak` is cgroup v2's high-water mark and it is the right tool for the
+same reason `getrusage` beat `ps` at M3: `docker stats` reports *current* usage.
+Read it after a run that includes the batch pass, and before any restart — a
+restart resets it. It is a cgroup figure, not the process RSS `bench/latency.py`
+reports, so the two are comparable in spirit rather than identical.
+
 ## What the first deploy actually measured
 
 Verified against `https://arxiv-classifier.duckdns.org` on 2026-09-09, on a
@@ -153,8 +236,7 @@ laptop numbers.
   *inside* the recipe, so make has already parsed the old Makefile for the run
   that fetches the new one. Only the target itself is affected; the images and
   compose files are current after the first run.
-- **M6's load sweep must raise `RATE_LIMIT_EVENTS` first.** `bench/load.sh`
-  sweeps to concurrency 16 and would trip a 30/min limit within seconds,
-  producing a graph of Caddy's rejection rate rather than the service's
-  throughput. Raise it in `.env`, redeploy, measure, put it back — and say in
-  `docs/numbers.md` that the numbers were taken with the limit lifted.
+- **`hey` has no working published binary.** The S3 URLs its README gives return
+  `AccessDenied` and the GitHub releases have no assets, so it is built from
+  source in a `golang:1-alpine` container. Written up above rather than left as a
+  surprise for whoever next runs a sweep.
