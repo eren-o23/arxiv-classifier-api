@@ -79,8 +79,9 @@ sizing a container from this page, 849 MB is the number.
 
 | | |
 |---|---|
-| **shipped image, CPU-only torch** | **562 MB** as `docker images` reports it |
-| the same image on disk, uncompressed | 1340 MB |
+| **shipped image, compressed** | **562 MB** — `docker image inspect -f '{{.Size}}'`, what `make build` prints and what a registry transfers |
+| the running container's filesystem | 1340 MB — `du -sx /` inside it |
+| what the image costs Docker's local store | 1.98 GB — what `docker images` prints |
 | dependency wheels, CPU-only index | **194 MB** across 40 wheels |
 | dependency wheels, default PyPI index | **2921 MB** across 58 wheels |
 | baked artifact | 257 MB |
@@ -88,10 +89,21 @@ sizing a container from this page, 849 MB is the number.
 Built `--platform linux/amd64` on an arm64 laptop, because the lock is hashed for
 x86_64 and the M5 VM is the arch that matters.
 
-**The M4 gate is met on the first row and not the second.** 562 MB is what
-`docker images` prints and what the "under 1GB" figures people quote for CPU-only
-torch refer to, so it is the like-for-like comparison; 1340 MB is what the image
-actually occupies once unpacked. Size the M5 VM's disk from 1340 MB, not 562.
+**Three numbers, and they are not the same measurement.** 562 MB is the sum of
+the compressed layers — the pull, and the number the "under 1GB" figures quoted
+for CPU-only torch refer to, so it is the like-for-like comparison and the one
+the M4 gate is met on. 1340 MB is what the container's filesystem actually
+occupies (`docker history` sums to 1418 MB; the gap is overlay accounting).
+1.98 GB is what `docker images` prints, because Docker's local store keeps the
+compressed blobs *and* the unpacked snapshot — 562 + 1340 is most of it.
+
+**Size the M5 VM's disk from 1.98 GB**, not 562 MB and not 1340 MB. The store is
+what fills up, and this laptop already proved that failure mode.
+
+`docker images` does *not* print the compressed size, which is easy to assume
+and wrong in the direction that flatters the number. `make build` prints the
+562 MB via `docker image inspect`, and torch alone is 575 MB unpacked — an image
+containing it cannot be 562 MB on disk, which is the check that catches this.
 
 ### CPU-only torch is a 15x difference in what you download
 
