@@ -1,0 +1,70 @@
+# SPEC.md §10: lint, tests, and build the image. The image build is the part
+# worth having — it catches "works locally, breaks in the container", which is
+# the failure this project exists to teach.
+#
+# Every step is an existing Makefile target. CI is a caller, not a second copy
+# of how to lint/test/build; a workflow that reimplements them is a workflow
+# that drifts from what you run by hand.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A 6-minute image build per push adds up when pushes come in threes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Separate job from `image` so lint and test feedback does not queue behind
+  # the docker build.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: make lint
+
+      # models/ is gitignored, so a fresh checkout has no artifact: `make model`
+      # pulls it from the Hub at the revision pinned in the Makefile.
+      #
+      # ponytail: keyed on the whole Makefile, not just REVISION — any Makefile
+      # edit re-downloads 265MB. Wrong in the safe direction (never a stale
+      # artifact against a new SHA) and it costs ~30s a few times a year. If it
+      # ever grates, add a `revision:` target that echoes $(REVISION) and key on
+      # that instead.
+      - uses: actions/cache@v4
+        with:
+          path: models/arxiv-v1
+          key: model-${{ hashFiles('Makefile') }}
+
+      - run: make model
+      - run: make test
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No PLATFORM= override: the runner is x86_64, so the Makefile's default
+      # --platform linux/amd64 is already native here. requirements.lock is
+      # hashed for that arch, which is the whole reason it is the default.
+      - run: make build
+
+      - run: docker run -d --rm -p 8000:8000 --name arxiv-classifier arxiv-classifier:latest
+
+      # scripts/smoke.py is stdlib-only with no project imports, which is why it
+      # runs here unchanged — the same gate M4 ran locally and M5 ran over TLS.
+      # It polls /health for up to 180s, so it handles the model load itself.
+      - run: make smoke
+
+      # A smoke failure with no container log is a failure you re-run blind.
+      - if: failure()
+        run: docker logs arxiv-classifier
