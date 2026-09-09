@@ -1,0 +1,53 @@
+# The API plus Caddy, per SPEC.md §9. Compose is the process supervisor —
+# `restart: unless-stopped` on both is why there is no systemd unit on top.
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        # From the environment, not literals. The Makefile is the single place
+        # the revision lives (a second copy here is how the two drift), and
+        # `make deploy` exports both. Failing loudly beats building an image
+        # against an empty revision.
+        HUB_REPO: ${HUB_REPO:?set by make deploy}
+        REVISION: ${REVISION:?set by make deploy}
+    image: arxiv-classifier:latest
+    restart: unless-stopped
+    environment:
+      # A settings knob rather than a rebuild, so M6 can re-test the thread
+      # result on 2 vCPU by editing .env. Empty means torch's default (every
+      # core) — config.py treats an empty string as unset.
+      NUM_THREADS: ${NUM_THREADS:-}
+    # expose, not ports: 8000 is never published to the host, so the only route
+    # in is Caddy over the compose network. The rate limit and the body cap
+    # cannot be walked around by hitting the IP directly.
+    expose:
+      - "8000"
+
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      # The one place this default lives. The Caddyfile reads it with no
+      # fallback of its own, so there is nothing to keep in sync.
+      RATE_LIMIT_EVENTS: ${RATE_LIMIT_EVENTS:-30}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Load-bearing. Certificates live in /data; without this volume every
+      # `compose up` requests a fresh one and Let's Encrypt rate-limits
+      # duplicates at 5 per week per hostname.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

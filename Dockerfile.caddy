@@ -1,0 +1,13 @@
+# Caddy with the rate limiter compiled in.
+#
+# `rate_limit` is not a built-in directive — it comes from mholt/caddy-ratelimit,
+# a third-party module — and Caddy has no equivalent in the standard build. A
+# module means a custom binary, and xcaddy is how you get one. This is the whole
+# cost of the feature: one extra image, compiled once and then layer-cached.
+FROM caddy:2-builder AS builder
+
+RUN xcaddy build --with github.com/mholt/caddy-ratelimit
+
+FROM caddy:2-alpine
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

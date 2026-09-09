@@ -47,6 +47,7 @@ make bench   # latency, batch, cold start, RSS — spawns its own server
 make load    # hey sweep at concurrency 1/2/4/8/16 (needs `brew install hey`)
 make build   # container image, artifact pulled at the pinned revision
 make smoke   # the M4 gate: health, predict, batch, validation over HTTP
+make deploy  # on the VM: git pull + compose up (see docs/deploy.md)
 ```
 
 - [x] M0 — model trained, artifact + card published ([`erenrosman/arxiv-classifier-v1`](https://huggingface.co/erenrosman/arxiv-classifier-v1))

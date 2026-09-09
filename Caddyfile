@@ -1,0 +1,50 @@
+# TLS is automatic and that is the reason Caddy is here rather than
+# nginx+certbot: it requests a Let's Encrypt certificate for $DOMAIN over HTTP-01
+# on port 80, renews it itself, and redirects http->https. SPEC.md §9.
+#
+# $DOMAIN comes from .env on the VM, which is gitignored — the hostname is not
+# committed, so this file is the same on every box.
+{$DOMAIN} {
+	# api.py's limit_body caps on Content-Length only, so a chunked request has
+	# no length to check and slips past it. This cap applies to chunked bodies
+	# too. It is the one hardening job M4 explicitly deferred to M5, and the
+	# reason the app-level check still exists is that the container must not
+	# depend on a proxy when run directly.
+	request_body {
+		max_size 1MB
+	}
+
+	# 30 requests/minute per client IP, predict routes only.
+	#
+	# {remote_host} is the real client address: Caddy is the edge here, nothing
+	# sits in front of it, so there is no X-Forwarded-For to decide whether to
+	# trust. Rejecting at this layer means an abusive client never reaches Python
+	# and never occupies one of anyio's threadpool slots.
+	#
+	# /health and /metadata are deliberately unlimited. scripts/smoke.py polls
+	# /health twice a second for up to 180s while the container loads, so a limit
+	# there would make the deploy gate fight the rate limiter — and neither
+	# endpoint touches the model. The container's own HEALTHCHECK hits
+	# localhost:8000 inside the api container and never traverses Caddy at all.
+	#
+	# 30/min is a starting number, not a derived one: the laptop sustains ~24
+	# req/s at concurrency 8 and 2 vCPU will do a fraction of that, so 0.5 rps
+	# per IP is far more than the README's curl needs and low enough that one
+	# client cannot monopolise both cores. M6 revises it once the box's real
+	# ceiling is measured — and M6's own load sweep has to raise
+	# RATE_LIMIT_EVENTS first, or it measures this limiter instead of the service.
+	rate_limit {
+		zone predict {
+			match {
+				path /predict*
+			}
+			key {remote_host}
+			events {$RATE_LIMIT_EVENTS}
+			window 1m
+		}
+	}
+
+	# By service name over the compose network. The api container publishes
+	# nothing to the host, so this is the only route to it.
+	reverse_proxy api:8000
+}

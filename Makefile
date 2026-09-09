@@ -1,4 +1,4 @@
-.PHONY: model test lint run bench load lock build docker-run smoke
+.PHONY: model test lint run bench load lock build docker-run smoke deploy
 
 # The one place the artifact is pinned. At M4 the Dockerfile takes this as a
 # --build-arg rather than hardcoding its own copy.
@@ -64,3 +64,16 @@ docker-run:
 # Points anywhere: `URL=https://... make smoke` is how M5 gets checked.
 smoke:
 	PORT=$(PORT) python3 scripts/smoke.py
+
+# M5. Runs *on the VM*, in the checkout — SPEC §9's `git pull && docker compose
+# up -d --build`, nothing fancier. From the laptop that is
+# `ssh <host> 'cd arxiv-classifier-api && make deploy'`, so there is no second
+# remote-wrapper target to keep in step with this one.
+#
+# HUB_REPO and REVISION are exported rather than written into
+# docker-compose.yml: this file stays the only place the SHA lives.
+# DOMAIN and RATE_LIMIT_EVENTS come from .env, which compose reads itself.
+deploy:
+	git pull
+	HUB_REPO=$(HUB_REPO) REVISION=$(REVISION) docker compose up -d --build
+	docker compose ps
