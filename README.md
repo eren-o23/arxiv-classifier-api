@@ -3,21 +3,25 @@
 Fine-tuned DistilBERT classifying arXiv papers by subject, served as a FastAPI service — containerised, load-tested, and deployed.
 
 ```bash
-curl -X POST https://TODO/predict \
+curl -X POST https://arxiv-classifier.duckdns.org/predict \
   -H 'content-type: application/json' \
-  -d '{"title": "Adaptive Gradient Clipping for Stable Low-Precision Training",
-       "abstract": "We show that per-layer gradient clipping thresholds ..."}'
+  -d '{"title": "Attention Is All You Need",
+       "abstract": "We propose the Transformer, a network architecture based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on machine translation tasks show these models to be superior in quality while being more parallelizable."}'
 ```
 
 ```json
 {
-  "label": "cs.LG",
-  "confidence": 0.612,
-  "top3": ["cs.LG", "stat.ML", "cs.AI"],
+  "label": "cs.CL",
+  "confidence": 0.918,
+  "top3": ["cs.CL", "cs.AI", "cs.LG"],
   "model_version": "v1.0.0",
-  "latency_ms": 74.5
+  "latency_ms": 268.26
 }
 ```
+
+Live, with a real certificate. Rate limited to 30 requests/minute per IP on
+`/predict`; `/health` and `/metadata` are not limited. Deploy details in
+[docs/deploy.md](docs/deploy.md).
 
 ## Numbers
 
@@ -55,5 +59,5 @@ make deploy  # on the VM: git pull + compose up (see docs/deploy.md)
 - [x] M2 — API (four endpoints, lifespan load + warmup, validation, JSON request log)
 - [x] M3 — benchmarks ([docs/numbers.md](docs/numbers.md))
 - [x] M4 — container (multi-stage, CPU-only torch, non-root, healthcheck — 562 MB)
-- [ ] M5 — deployed
+- [x] M5 — deployed ([arxiv-classifier.duckdns.org](https://arxiv-classifier.duckdns.org/health) — compose + Caddy, TLS, rate limited)
 - [ ] M6 — load test + CI
