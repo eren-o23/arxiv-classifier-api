@@ -27,7 +27,9 @@ from .schemas import (
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure(settings.log_level)
-    app.state.bundle = ModelBundle.load(settings.model_dir, num_threads=settings.num_threads)
+    app.state.bundle = ModelBundle.load(
+        settings.model_dir, num_threads=settings.num_threads, quantize=settings.quantize
+    )
     # The first forward pass is 5-10x slower than steady state (lazy kernel
     # init). Eat it here so no real request does, and stay un-ready until it is
     # done — a health check that goes green before the service can serve is

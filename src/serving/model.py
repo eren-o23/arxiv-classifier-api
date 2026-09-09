@@ -40,13 +40,19 @@ class ModelBundle:
 
     @classmethod
     def load(cls, model_dir: str | Path | None = None,
-             num_threads: int | None = None) -> ModelBundle:
+             num_threads: int | None = None, quantize: bool = False) -> ModelBundle:
         """Load from disk. Raises rather than half-loading.
 
         `num_threads` is an explicit knob, not a module-level
         `torch.set_num_threads(1)`: pinning threads helps p95 under concurrency
         but M3 has to measure it both ways, and a global side effect at import
         time makes that impossible.
+
+        `quantize` is a knob for the same reason. It converts every Linear to
+        int8 with dynamically-quantized activations, which is weight-only
+        surgery on an already-trained model — no calibration set, no retraining.
+        It changes the arithmetic, so it can change predictions: the golden set
+        is what says by how much.
         """
         d = resolve_model_dir(model_dir)
         card_path = d / "model_card.json"
@@ -73,6 +79,27 @@ class ModelBundle:
             raise ValueError(
                 f"card limits ({card['max_input_chars']}, {card['max_tokens']}) != "
                 f"preprocessing ({MAX_INPUT_CHARS}, {MAX_TOKENS})"
+            )
+
+        # After the checks, so a bad artifact fails before any time is spent on
+        # it — and because the checks read `model.config`, which is clearer to
+        # do on the unwrapped module.
+        if quantize:
+            # torch reports engines it was *built* with separately from the one
+            # it selected, and on an arm64 macOS wheel the selection is "none" —
+            # quantize_dynamic then dies inside linear_prepack with
+            # "NoQEngine", which says nothing about what to do. Fail here
+            # instead: this is a config flag, and someone will set it on a
+            # machine that cannot honour it.
+            if torch.backends.quantized.engine == "none":
+                raise RuntimeError(
+                    "QUANTIZE is set but this torch build has no active quantized "
+                    f"engine (supported: {list(torch.backends.quantized.supported_engines)}). "
+                    "int8 needs an x86 or ARM backend — the linux/amd64 container has one, "
+                    "an arm64 macOS wheel does not."
+                )
+            model = torch.ao.quantization.quantize_dynamic(
+                model, {torch.nn.Linear}, dtype=torch.qint8
             )
 
         return cls(model, tokenizer, card)

@@ -19,6 +19,9 @@ services:
       # result on 2 vCPU by editing .env. Empty means torch's default (every
       # core) — config.py treats an empty string as unset.
       NUM_THREADS: ${NUM_THREADS:-}
+      # Same story: a restart, not a rebuild, so the int8-vs-fp32 comparison can
+      # be run on the box where the answer actually differs.
+      QUANTIZE: ${QUANTIZE:-}
     # expose, not ports: 8000 is never published to the host, so the only route
     # in is Caddy over the compose network. The rate limit and the body cap
     # cannot be walked around by hitting the IP directly.

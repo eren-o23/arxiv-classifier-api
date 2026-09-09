@@ -22,6 +22,7 @@ class Settings:
     num_threads: int | None
     max_batch_size: int
     log_level: str
+    quantize: bool
 
 
 @lru_cache
@@ -37,4 +38,8 @@ def get_settings() -> Settings:
         num_threads=int(threads) if threads else None,
         max_batch_size=int(os.environ.get("MAX_BATCH_SIZE", "32")),
         log_level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        # int8 dynamic quantization. An env var for the same reason NUM_THREADS
+        # is one: the question "does it pay here?" is a measurement, and a knob
+        # makes the comparison a restart rather than a rebuild.
+        quantize=os.environ.get("QUANTIZE", "").strip().lower() in {"1", "true", "yes"},
     )
